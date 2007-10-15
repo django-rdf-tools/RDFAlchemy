@@ -57,6 +57,8 @@ re_ns_n = re.compile('(.*[/#])(.*)')
 
 # helper function, might be somewhere in rdflib I need to look for it there
 def getList(sub, pred=None, db=None):
+    """Attempts to return a list from sub (subject that is)
+    passed in if it is a Collection or a Container (Bag,Seq or Alt)"""
     if not db:
         if isinstance(sub,rdfObject):
             db=sub.db
@@ -140,13 +142,17 @@ class rdflibMultiple(object):
        Expects to return a list of values (could be a list of one)'''
     def __init__(self, pred, cacheName=None):
         self.pred=pred
-        self.name= cacheName        
+        self.name= cacheName or pred
         
     def __get__(self, obj, cls):
         if obj is None:
             return self
-        #val=[o for o in obj.db.objects(obj.resUri, self.pred)]
-        val=getList(obj, self.pred)
+        val=[o for o in obj.db.objects(obj.resUri, self.pred)]
+	# check to see if this is a Container or Collection
+        # if so, return collection as a list
+	if len(val) == 1 \
+           and (obj.db.value(o,rdf.first) or obj.db.value(o,rdf._1)): 
+                  val=getList(obj, self.pred)
         setattr(obj, self.name, val)
         try:
             log.info("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
@@ -157,7 +163,7 @@ class rdflibMultiple(object):
 
 class rdfObject(object):
     db=ConjunctiveGraph()
-    owlType=''
+    rdf_type=''
     def __init__(self, resUri):
         if isinstance(resUri, rdfObject):
             self.resUri=resUri.resUri
@@ -189,7 +195,9 @@ class rdfObject(object):
     get_by=classmethod(get_by)
         
     def ClassInstances(cls):
-        for i in cls.db.subjects(rdf.type, cls.owlType):
+        """return a generator for instances of this rdf:type
+        you can look in MyClass.rdf_type to see the predicate being used"""
+        for i in cls.db.subjects(rdf.type, cls.rdf_type):
             yield cls(i)
     ClassInstances=classmethod(ClassInstances)
 
