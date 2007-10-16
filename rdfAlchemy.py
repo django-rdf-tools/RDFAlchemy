@@ -153,6 +153,7 @@ class rdflibMultiple(object):
 	if len(val) == 1 \
            and (obj.db.value(o,rdf.first) or obj.db.value(o,rdf._1)): 
                   val=getList(obj, self.pred)
+        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and rdfObject(v) or v) for v in val]
         setattr(obj, self.name, val)
         try:
             log.info("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
