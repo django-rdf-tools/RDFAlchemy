@@ -164,7 +164,7 @@ class rdflibMultiple(object):
 
 class rdfObject(object):
     db=ConjunctiveGraph()
-    rdf_type=''
+    rdf_type=None
     def __init__(self, resUri):
         if isinstance(resUri, rdfObject):
             self.resUri=resUri.resUri
@@ -184,6 +184,15 @@ class rdfObject(object):
                 self.namespace=Namespace(self.namespace)
                 
     def get_by(cls, **kwargs):
+        """Class Method, returns a single instance of the class
+        by a single kwarg.  the keyword must be a descriptor of the
+        class.
+        example:
+            bigBlue = Company.get_by(symbol='IBM')
+
+        OWL Note:
+            the keyword should map to an rdf predicate
+            that is of type owl:InverseFunctional"""
         if len(kwargs) != 1:
             raise ValueError("get_by did not want %i args"%(len(kwargs)))
         key,value = kwargs.items()[0]
@@ -194,6 +203,45 @@ class rdfObject(object):
         else:
             raise LookupError("%s = %s not found"%(key,value))
     get_by=classmethod(get_by)
+        
+    def filter_by(cls, **kwargs):
+        """Class method returns a generator over classs instances
+        meeting the kwargs conditions.
+
+        Each keyword must be a class descriptor
+
+        filter by rdf.type == cls.rdf_type is implicit
+
+        Order helps, the first keyword should be the most restrictive
+        """
+        filters = []
+        for key,value in kwargs.items():
+            try:
+                pred=cls.__dict__[key].pred
+            except LookupError :
+                raise LookupError ("%s not a valid descriptor for %s" % (key,cls))
+            # try to make the value be OK for the triple query as an object
+            if isinstance(value, rdfObject):
+                obj = rdfObject.resUri
+            elif isinstance(value, URIRef) or isinstance(value,BNode):
+                obj = value
+            else:
+                obj = Literal(value)
+            filters.append((pred,obj))
+        # make sure we filter by type
+        if not (rdf.type,cls.rdf_type) in filters:
+            filters.append((rdf.type,cls.rdf_type))
+        pred, obj = filters[0]
+        print "Checking %s, %s" % (pred,obj)
+        for sub in cls.db.subjects(pred,obj):
+            print "maybe %s" % sub
+            for pred,obj in filters[1:]:
+                print "Checking %s, %s" % (pred,obj)
+                if not list(cls.db.triples((sub,pred,obj))):
+                    print "Not %s" % s
+                    continue
+            yield cls(sub)
+    filter_by=classmethod(filter_by)
         
     def ClassInstances(cls):
         """return a generator for instances of this rdf:type
