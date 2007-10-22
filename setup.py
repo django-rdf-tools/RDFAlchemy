@@ -7,7 +7,7 @@ except ImportError:
 
 setup(
     name='RDFAlchemy',
-    version="0.1",
+    version="0.2",
     tag_dev=".dev",
     description="rdflib wrapper",
     author='Philip Cooper',
