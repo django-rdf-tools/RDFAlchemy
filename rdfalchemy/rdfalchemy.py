@@ -148,9 +148,9 @@ class rdflibMultiple(object):
         if obj is None:
             return self
         val=[o for o in obj.db.objects(obj.resUri, self.pred)]
-	# check to see if this is a Container or Collection
+        # check to see if this is a Container or Collection
         # if so, return collection as a list
-	if len(val) == 1 \
+        if len(val) == 1 \
            and (obj.db.value(o,rdf.first) or obj.db.value(o,rdf._1)): 
                   val=getList(obj, self.pred)
         val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and rdfObject(v) or v) for v in val]
@@ -251,6 +251,7 @@ class rdfObject(object):
     ClassInstances=classmethod(ClassInstances)
 
     def GetRandom(cls):
+        """for develoment just returns a random instance of this class"""
         from random import randint
         xii=list(cls.ClassInstances())
         return xii[randint(0,len(xii)-1)]
@@ -269,3 +270,10 @@ class rdfObject(object):
             val=rdfObject(val)
         return val
         
+    def ppo(self,db=None):
+        """Like pretty print...
+        Return a 'pretty predicate,object' of self
+        returning all predicate object pairs with qnames"""
+        db = db or self.db
+        for p,o in db.predicate_objects(self.resUri):
+            print "%20s = %s"% (db.qname(p),str(o))
