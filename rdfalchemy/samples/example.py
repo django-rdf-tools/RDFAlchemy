@@ -48,7 +48,7 @@ print "%s: %s"%(c.companyName,c.stockDescription)
 Company.industry = rdflibSingle(ov.yindustry,'industry')
 
 ## add an attribute (from the database)
-c = Company.get_by(symbol = 'SUNW')
+c = Company.get_by(symbol = 'Java')
 c.industry = 'Computer stuff'
 
 ## delete an attribute (from the database)

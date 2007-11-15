@@ -3,7 +3,7 @@ import os
 import re
 import urllib
 
-def create_engine(url):
+def create_engine(url=''):
     """Takes a url string and returns an open
     rdflib ConjunctiveGraph
     e.g.:
@@ -16,7 +16,7 @@ def create_engine(url):
        urls inding with .fs indicate FileStorage
        otherwise ClientStoreage is assumed which requires
        a ZEO Server to be running"""
-    if url.startswith('IOMemory'):
+    if url=='' or url.startswith('IOMemory'):
         db = ConjunctiveGraph('IOMemory')
     elif url.lower().startswith('mysql://'):
         schema,opts = _parse_rfc1738_args(url)

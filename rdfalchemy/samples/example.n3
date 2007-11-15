@@ -10,7 +10,7 @@ ov:C_US_SUNW a ov:Company;
      ov:country iso3166:US;
      ov:nasdaqSymbol "SUNW";
      ov:secCik "0000709519";
-     ov:symbol "SUNW". 
+     ov:symbol "JAVA". 
      
 ov:C_US_IBM a ov:Company;
      ov:GICS_2 ov:GICS_2_45;
