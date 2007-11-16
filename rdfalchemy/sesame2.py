@@ -92,7 +92,7 @@ class SesameGraph(object):
             url = url+"?"+urlencode(dict(context=ctx))
         req = Request(url)
         req.data = "%s %s %s .\n" % (s.n3(), p.n3(), o.n3())
-        req.add_header('Content-Type','	text/rdf+n3')
+        req.add_header('Content-Type','text/rdf+n3')
         try:
             result = urlopen(req).read()
         except HTTPError, e:
@@ -267,4 +267,65 @@ class SesameGraph(object):
                 return "%s:%s"%(p,uri[len(n):])
         return uri
 
+    def parse(self, source, publicID=None, format="xml", method='POST'):
+        """ Parse source into Graph
+
+        Graph will get loaded into it's own context (sub graph). 
+        Format defaults to xml (AKA rdf/xml). 
+        The publicID argument is for specifying the logical URI 
+        for the case that it's different from the physical source URI. 
+        Returns the context into which  the source was parsed.
+          POST method adds data in a context
+          PUT method replaces data in a context
+        """
+        url = self.url+'/statements'
+        if not source.startswith('http://'):
+            source = 'file://'+os.path.abspath(os.path.expanduser(source))
+        ctx = publicID or source
+        url = url+"?"+urlencode(dict(context=ctx))
+
+        req = Request(url)
+        req.method = lambda : method
+        
+        if format='xml':
+            req.add_header('Content-Type','application/rdf+xml')
+        elif format='n3':
+            req.add_header('Content-Type','text/rdf+n3')
+        else:
+            raise "Unknown format: %s"% format
+        
+        req.data = urlopen(source).read()
+
+        try:
+            result = urlopen(req).read()
+        except HTTPError, e:
+            if e.code == 204:
+                return
+            else:
+                log.error(e) 
+        return result
+
+
+    def load(self, source, publicID=None, format="xml"):
+        self.parse(source, publicID, format)
+
+    def query(self, strOrQuery, initBindings={}, initNs={}, DEBUG=False,
+              processor="sparql"):
+        """
+        Executes a SPARQL query (eventually will support Versa queries with same method) against this Graph
+        strOrQuery - Is either a string consisting of the SPARQL query or an instance of rdflib.sparql.bison.Query.Query
+        initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        initNS - A mapping from a namespace prefix to an instance of rdflib.Namespace (used for SPARQL query)
+        DEBUG - A boolean flag passed on to the SPARQL parser and evaluation engine
+        processor - The kind of RDF query (must be 'sparql' until Versa is ported)
+        """
+        assert processor == 'sparql',"SPARQL is currently the only supported RDF query language"
+        p = plugin.get(processor, sparql.Processor)(self)
+        return plugin.get('SPARQLQueryResult',QueryResult)(p.query(strOrQuery, initBindings, initNs, DEBUG))
+
+        processor_plugin = plugin.get(processor, sparql.Processor)(self.store)
+        qresult_plugin = plugin.get('SPARQLQueryResult', QueryResult)
+
+        res = processor_plugin.query(strOrQuery, initBindings, initNs, DEBUG)
+        return qresult_plugin(res)
 
