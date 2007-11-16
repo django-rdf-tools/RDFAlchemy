@@ -6,9 +6,8 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 
+import os, re, logging
 import simplejson
-import re
-import logging
 
 log=logging.getLogger('rdfAlchemy')
 
@@ -79,6 +78,7 @@ class SesameGraph(object):
         if o:
             query['obj']  = o.n3()
         if context:
+	    ### TODO FIXME what about bnodes like _:adf23123
             query['context']  = "<%s>"%context
         if query:
             url = url+"?"+urlencode(query)
@@ -281,23 +281,24 @@ class SesameGraph(object):
         url = self.url+'/statements'
         if not source.startswith('http://'):
             source = 'file://'+os.path.abspath(os.path.expanduser(source))
-        ctx = publicID or source
+        ctx = "<%s>" % (publicID or source)
         url = url+"?"+urlencode(dict(context=ctx))
 
         req = Request(url)
-        req.method = lambda : method
+        req.get_method = lambda : method
         
-        if format='xml':
+        if format=='xml':
             req.add_header('Content-Type','application/rdf+xml')
-        elif format='n3':
+        elif format=='n3':
             req.add_header('Content-Type','text/rdf+n3')
         else:
             raise "Unknown format: %s"% format
         
         req.data = urlopen(source).read()
-
+        log.debug("Request: %s" % req.get_full_url())
         try:
             result = urlopen(req).read()
+            log.debug("Result: "+result)
         except HTTPError, e:
             if e.code == 204:
                 return
@@ -309,23 +310,39 @@ class SesameGraph(object):
     def load(self, source, publicID=None, format="xml"):
         self.parse(source, publicID, format)
 
-    def query(self, strOrQuery, initBindings={}, initNs={}, DEBUG=False,
-              processor="sparql"):
+    def query(self, strOrQuery, initBindings={}, initNs={}, DEBUG=False,processor="sparql"):
         """
-        Executes a SPARQL query (eventually will support Versa queries with same method) against this Graph
-        strOrQuery - Is either a string consisting of the SPARQL query or an instance of rdflib.sparql.bison.Query.Query
+        Executes a SPARQL query against this Graph
+        strOrQuery - Is either a string consisting of the SPARQL query 
         initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
-        initNS - A mapping from a namespace prefix to an instance of rdflib.Namespace (used for SPARQL query)
+        initNS - A mapping from a namespace prefix to a namespace
         DEBUG - A boolean flag passed on to the SPARQL parser and evaluation engine
-        processor - The kind of RDF query (must be 'sparql' until Versa is ported)
+        processor - The kind of RDF query (must be 'sparql' or 'serql')
         """
-        assert processor == 'sparql',"SPARQL is currently the only supported RDF query language"
-        p = plugin.get(processor, sparql.Processor)(self)
-        return plugin.get('SPARQLQueryResult',QueryResult)(p.query(strOrQuery, initBindings, initNs, DEBUG))
+	query = strOrQuery
+        if initNs:
+	    prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
+	    query = prefixes + query
+        
+        query = dict(query=query,queryLn=processor)
+        url = self.url+"?"+urlencode(query)
+	req = Request(url)
+	req.add_header('Accept','application/sparql-results+json')
+        ret=simplejson.load(urlopen(req))
+        bindings=ret['results']['bindings']
+        for b in bindings:
+            for var,val in b.items():
+                type = val['type']
+                if type=='uri':
+		    b[var]=URIRef(val['value'])
+		elif type == 'bnode':
+		    b[var]=BNode(val['value'])
+		elif type == 'literal':
+		    b[var]=Literal(val['value'],datatype=val.get('datatype'),lang=val.get('xml:lang'))
+		else:
+		    raise AttributeError("Binding type error: %s"%(type))
+                
+        return bindings
 
-        processor_plugin = plugin.get(processor, sparql.Processor)(self.store)
-        qresult_plugin = plugin.get('SPARQLQueryResult', QueryResult)
 
-        res = processor_plugin.query(strOrQuery, initBindings, initNs, DEBUG)
-        return qresult_plugin(res)
 
