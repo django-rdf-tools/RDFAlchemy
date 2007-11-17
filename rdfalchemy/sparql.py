@@ -1,38 +1,71 @@
-from rdflib import ConjunctiveGraph
+from rdflib import ConjunctiveGraph, RDF
+from rdflib import URIRef , Literal, BNode
+from rdflib.syntax.parsers.ntriples import NTriplesParser
+
+from urllib2 import urlopen, Request
+from urllib import urlencode
+import simplejson
+import logging
+
+log=logging.getLogger('rdfAlchemy')
+
+class DumpSink(object):
+   def __init__(self):
+      self.length = 0
+
+   def triple(self, s, p, o):
+      self.length += 1
+      self._triple=(s,p,o)
+
+   def get_triple(self):
+       return self._triple
+
 
 class SPARQLGraph(object):
     """provides (some) rdflib api via http to a SPARQL endpoint
     gives 'read-only' access to the graph
     constructor takes http endpoint and repository name
     e.g.
-      SPARQLGraph('http://www.openvest.org:8080/sesame/repositories/Test')"""
+      SPARQLGraph('http://localhost:2020/sparql')"""
     
     def __init__(self, url, context=None):
         self.url = url
         self.context=context
-    
 
-        
-    def triples(self, (s, p, o), context=None):
-        """Generator over the triple store
-
-        Returns triples that match the given triple pattern. If triple pattern
-        does not provide a context, all contexts will be searched.
+    def construct(self, strOrTriple, initBindings={}, initNs={}):
         """
-        self.url+'?'+urlencode(query='construct {?s ?p ?o} where {?s ?p ?o}')
-        url = self._statement_encode((s, p, o), context)
-        req = Request(url)
-        req.add_header('Accept','text/plain') # N-Triples is best for generator (one line per triple)
-        log.debug("Request: %s" % req.get_full_url())
-        dumper=DumpSink()
-        parser=NTriplesParser(dumper)
+        Executes a SPARQL Construct
+        strOrTriple - can be either:
+          a string in which case it it considered a CONSTRUCT query
+          a triple in which case it acts as the rdflib `triples((s,p,o))`
+        initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        initNS - A mapping from a namespace prefix to a namespace
         
-        for l in urlopen(req):
-            log.debug('line: %s'%l)
-            parser.parsestring(l)
-            yield dumper.get_triple() 
-            
-
+        returns an instance of rdflib.ConjuctiveGraph('IOMemory')
+        """
+        if isinstance(strOrTriple, str):
+            query = strOrTriple
+            if initNs:
+                prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
+                query = prefixes + query
+        else:
+            s,p,o = strOrTriple
+            t='%s %s %s'%((s and s.n3() or '?s'),(p and p.n3() or '?p'),(o and o.n3() or '?o'))
+            query='construct {%s} where {%s}'%(t,t)
+        query = dict(query=query)
+        
+        url = self.url+"?"+urlencode(query)
+        req = Request(url)
+        log.debug("Request: %s" % req.get_full_url())
+        req.add_header('Accept','application/rdf+xml')
+        subgraph = ConjunctiveGraph('IOMemory')
+        subgraph.parse(urlopen(req))
+        return subgraph
+        
+    def triples(self, (s,p,o)):
+        """Calls self.construct and returns triples"""
+        return self.construct((s,p,o)).triples((None,None,None)) 
+    
     def subjects(self, predicate=None, object=None):
         """A generator of subjects with the given predicate and object"""
         for s, p, o in self.triples((None, predicate, object)):
@@ -163,15 +196,15 @@ class SPARQLGraph(object):
         DEBUG - A boolean flag passed on to the SPARQL parser and evaluation engine
         processor - The kind of RDF query (must be 'sparql' or 'serql')
         """
-	query = strOrQuery
+        query = strOrQuery
         if initNs:
 	    prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
 	    query = prefixes + query
         
         query = dict(query=query,queryLn=processor)
         url = self.url+"?"+urlencode(query)
-	req = Request(url)
-	req.add_header('Accept','application/sparql-results+json')
+        req = Request(url)
+        req.add_header('Accept','application/sparql-results+json')
         ret=simplejson.load(urlopen(req))
         bindings=ret['results']['bindings']
         for b in bindings:
@@ -188,27 +221,6 @@ class SPARQLGraph(object):
                 
         return bindings
 
-    def construct(self, strOrTriple, initBindings={}, initNs={}):
-        """
-        Executes a SPARQL Construct
-        initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
-        initNS - A mapping from a namespace prefix to a namespace
-        """
-        if isinstance(strOrTriple, str):
-            query = strOrTriple
-            if initNs:
-                prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
-                query = prefixes + query
-        else:
-            assert "NotImplimented"
-        query = dict(query=query)
-        
-        url = self.url+"?"+urlencode(query)
-        req = Request(url)
-        req.add_header('Accept','application/rdf+xml')
-        subgraph = ConjunctiveGraph()
-        subgraph.parse(urlopen(req))
-        return subgraph
 
     def describe(self, s_or_po, initBindings={}, initNs={}):
         """

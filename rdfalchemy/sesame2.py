@@ -262,7 +262,7 @@ class SesameGraph(object):
             
     def qname(self,uri):
         """turn uri into a qname given self.namespaces"""
-        for p,n in db.namespaces.items():
+        for p,n in self.namespaces.items():
             if uri.startswith(n):
                 return "%s:%s"%(p,uri[len(n):])
         return uri
