@@ -4,6 +4,8 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request
 from urllib import urlencode
+from xml.dom import pulldom
+
 import simplejson
 import logging
 
@@ -62,10 +64,34 @@ class SPARQLGraph(object):
         subgraph.parse(urlopen(req))
         return subgraph
         
-    def triples(self, (s,p,o)):
-        """Calls self.construct and returns triples"""
-        return self.construct((s,p,o)).triples((None,None,None)) 
+    def triples(self, (s,p,o), method='CONSTRUCT'):
+        """returns a generator over triples matching the pattern
+        method must be 'CONSTRUCT' or 'SELECT'
+               CONSTRUCT calls CONSTRUCT query and returns a Graph result 
+               SELECT calls a SELECT query and returns an interator streaming over the results
+        Use SELECT if you expect a large result set or may consume less than the entire result"""
+        if method == 'CONSTRUCT':
+            return self.construct((s,p,o)).triples((None,None,None))
+        elif method == 'SELECT':
+            if s or p or o:
+                pattern = "%s %s %s"%((s and s.n3() or '?s'),(p and p.n3() or '?p'),(o and o.n3() or '?o'))
+            else:
+                pattern = ''
+            query = "select ?s ?p ?o where {?s ?p ?o. %s}" % pattern
+            return self.query(query)
+        else:
+            raise "Unknown method: %s"%(method)
     
+    def __iter__(self):
+        """Iterates over all triples in the store"""
+        return self.triples((None, None, None))
+
+    def __contains__(self, triple):
+        """Support for 'triple in graph' syntax"""
+        for triple in self.triples(triple):
+            return 1
+        return 0
+        
     def subjects(self, predicate=None, object=None):
         """A generator of subjects with the given predicate and object"""
         for s, p, o in self.triples((None, predicate, object)):
@@ -178,7 +204,7 @@ class SPARQLGraph(object):
             if item:
                 yield item
             list = self.value(list, RDF.rest)
-            
+           
     def qname(self,uri):
         """turn uri into a qname given self.namespaces"""
         for p,n in db.namespaces.items():
@@ -187,39 +213,92 @@ class SPARQLGraph(object):
         return uri
 
 
-    def query(self, strOrQuery, initBindings={}, initNs={}, DEBUG=False,processor="sparql"):
+    def query(self, strOrQuery, initBindings={}, initNs={}, resultMethod="xml",processor="sparql"):
         """
         Executes a SPARQL query against this Graph
         strOrQuery - Is either a string consisting of the SPARQL query 
-        initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
-        initNS - A mapping from a namespace prefix to a namespace
-        DEBUG - A boolean flag passed on to the SPARQL parser and evaluation engine
+        initBindings - optional mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        initNS - optional mapping from a namespace prefix to a namespace
+        resultMethod - results query requested (must be 'xml' or 'json') 
+                       xml streams over the result set and json must read the entire set  to succeed 
         processor - The kind of RDF query (must be 'sparql' or 'serql')
         """
         query = strOrQuery
         if initNs:
 	    prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
 	    query = prefixes + query
-        
+        log.debug("Query: %s"%(query))
         query = dict(query=query,queryLn=processor)
         url = self.url+"?"+urlencode(query)
         req = Request(url)
+        if resultMethod == 'xml':
+            return self._sparql_results_xml(req)
+        elif resultMethod == 'json':
+            return self._sparql_results_json(req)
+        else:
+            raise "Unknown resultMethod: %s"%(resultMethod)
+        
+    def _sparql_results_json(self,req):
+        """_sparql_results_json takes a Request
+         returns an interator over the results but
+         **does not use a real generator** 
+         it consumes the entire result set before
+         yielding the first result"""
         req.add_header('Accept','application/sparql-results+json')
         ret=simplejson.load(urlopen(req))
-        bindings=ret['results']['bindings']
+        var_names = ret['head']['vars'] 
+        bindings = ret['results']['bindings']
         for b in bindings:
             for var,val in b.items():
                 type = val['type']
                 if type=='uri':
-		    b[var]=URIRef(val['value'])
-		elif type == 'bnode':
-		    b[var]=BNode(val['value'])
-		elif type == 'literal':
-		    b[var]=Literal(val['value'],datatype=val.get('datatype'),lang=val.get('xml:lang'))
-		else:
-		    raise AttributeError("Binding type error: %s"%(type))
-                
-        return bindings
+                   b[var]=URIRef(val['value'])
+                elif type == 'bnode':
+                   b[var]=BNode(val['value'])
+                elif type == 'literal':
+                   b[var]=Literal(val['value'],lang=val.get('xml:lang'))
+                elif type == 'typed-literal':
+                   b[var]=Literal(val['value'],datatype=val.get('datatype'))
+                else:
+                   raise AttributeError("Binding type error: %s"%(type))
+            yield tuple([b.get(var) for var in var_names])
+            
+    def _sparql_results_xml(self,req):
+        """_sparql_results_xml takes a Request
+         returns an interator over the results"""
+        # this uses xml.
+        var_names=[]
+        bindings=[] 
+        req.add_header('Accept','application/sparql-results+xml')
+        log.debug("Request: %s" % req.get_full_url())
+        events = pulldom.parse(urlopen(req))
+        # lets gather up the variable names in head
+        for (event, node) in events:
+            if event == pulldom.START_ELEMENT and  node.tagName == 'variable':
+                var_names.append(node.attributes['name'].value)
+            elif event == pulldom.END_ELEMENT and node.tagName == 'head':
+                break
+        # now let's yield each result as we parse them
+        for (event, node) in events:
+            if event == pulldom.START_ELEMENT and  node.tagName == 'result':
+                bindings = [None,] *  len(var_names)
+            elif event == pulldom.START_ELEMENT and node.tagName == 'binding':
+                idx = var_names.index(node.attributes['name'].value)
+            elif event == pulldom.START_ELEMENT and node.tagName == 'uri':
+                events.expandNode(node)
+                bindings[idx] = URIRef(node.firstChild.data)
+            elif event == pulldom.START_ELEMENT and node.tagName == 'bnode':
+                events.expandNode(node)
+                bindings[idx] = BNode(node.firstChild.data)
+            elif event == pulldom.START_ELEMENT and node.tagName == 'literal':
+                events.expandNode(node)
+                # guard against an empty string return
+                txt = node.firstChild and node.firstChild.data
+                bindings[idx] = Literal(txt,
+                                        datatype = node.getAttribute('datatype'), 
+                                        lang= node.getAttribute('xml:lang'))
+            elif event == pulldom.END_ELEMENT and node.tagName == 'result':
+                    yield tuple(bindings)
 
 
     def describe(self, s_or_po, initBindings={}, initNs={}):
