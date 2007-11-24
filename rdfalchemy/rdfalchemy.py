@@ -287,6 +287,10 @@ class rdfObject(object):
         #log.debug("Geting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Geting with __getitem__ %s for %s"%(pred,self.resUri))
         val=self.db.value(self.resUri,pred)
+        if isinstance(val,Literal):
+            val =  val.datatype and val.toPython() or unicode(val) 
+        elif isinstance(val, BNode) or isinstance(val,URIRef): 
+            val=rdfObject(val) 
         return val
         
     def ppo(self,db=None):

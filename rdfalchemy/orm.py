@@ -19,7 +19,8 @@ def allsub(cl):
     return sub
 
 def mapper(*classes):
-    """Map the classes given to allow descriptors with ranges to the proper Class of that type"""
+    """Map the classes given to allow descriptors with ranges to the proper Class of that type
+    default if no args is to map all subclasses(recursivly) of rdfObject"""
     if not classes:
         classes = allsub(rdfObject)
     class_dict = dict([(str(cl.rdf_type), cl) for cl in classes])
