@@ -1,18 +1,18 @@
 from rdfAlchemy import rdfObject, rdflibSingle, rdflibMultiple
 from rdflib import ConjunctiveGraph, Namespace, Literal
 
-ov = Namespace('http://owl.openvest.org/2005/10/Portfolio#')
-vcard = Namespace("http://www.w3.org/2006/vcard/ns#")
+OV = Namespace('http://owl.openvest.org/2005/10/Portfolio#')
+VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
 
 rdfObject.db = ConjunctiveGraph()
 rdfObject.db.load('./example.n3', format='n3')
 
 class Company(rdfObject):
-    owlType = ov.Company
-    symbol = rdflibSingle(ov.symbol,'symbol')
-    cik = rdflibSingle(ov.secCik,'cik')
-    companyName = rdflibSingle(ov.companyName)
-    address = rdflibSingle(vcard.adr)
+    owlType = OV.Company
+    symbol = rdflibSingle(OV.symbol,'symbol')
+    cik = rdflibSingle(OV.secCik,'cik')
+    companyName = rdflibSingle(OV.companyName)
+    address = rdflibSingle(VCARD.adr)
 
 
 # Above here would typically go in a model.py file and be imported
@@ -34,18 +34,18 @@ print ''
 c = Company.get_by(symbol = 'IBM')
 
 ## Add a descriptor on the fly
-Company.stockDescription = rdflibSingle(ov.stockDescription,'stockDescription')
+Company.stockDescription = rdflibSingle(OV.stockDescription,'stockDescription')
 
 print "%s: %s"%(c.companyName,c.stockDescription)
 print " same as"
-print "%s: %s"%(c[ov.companyName],c[ov.stockDescription])
+print "%s: %s"%(c[OV.companyName],c[OV.stockDescription])
 
 print "## CHECK to see if multiple reads cause database reads"
 print "%s: %s"%(c.companyName,c.stockDescription)
 print "%s: %s"%(c.companyName,c.stockDescription)
 
 ## add another descriptor on the fly
-Company.industry = rdflibSingle(ov.yindustry,'industry')
+Company.industry = rdflibSingle(OV.yindustry,'industry')
 
 ## add an attribute (from the database)
 c = Company.get_by(symbol = 'Java')

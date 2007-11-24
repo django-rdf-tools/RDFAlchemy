@@ -44,9 +44,9 @@ log=logging.getLogger('rdfAlchemy')
 ##log.setLevel(logging.DEBUG)
 log.addHandler(console)
 
-rdf  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-rdfs =Namespace("http://www.w3.org/2000/01/rdf-schema#")
-owl  =Namespace("http://www.w3.org/2002/07/owl#")
+RDF  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+RDFS =Namespace("http://www.w3.org/2000/01/rdf-schema#")
+OWL  =Namespace("http://www.w3.org/2002/07/owl#")
 
 re_ns_n = re.compile('(.*[/#])(.*)')
 
@@ -76,36 +76,56 @@ def getList(sub, pred=None, db=None):
         val=[o for o in db.objects(subUri, pred)]
         return val
     members=[]
-    first = db.value(base, rdf.first)
-    # OK let's work at returning a list if there is an rdf.first
+    first = db.value(base, RDF.first)
+    # OK let's work at returning a list if there is an RDF.first
     if first:
         while first:
             members.append(first)
-            base = db.value(base, rdf.rest)
-            first = db.value(base, rdf.first)
+            base = db.value(base, RDF.rest)
+            first = db.value(base, RDF.first)
         return members
-    # OK let's work at returning a Collection (Seq,Bag or Alt) if was no rdf.first
+    # OK let's work at returning a Collection (Seq,Bag or Alt) if was no RDF.first
     else:
         i=1        
-        first=db.value(base, rdf._1)
+        first=db.value(base, RDF._1)
         if not first:
             raise AttributeError, "Not a list, or collection but another type of BNode"
         while first:
             members.append(first)
             i += 1
-            first=db.value(base, rdf['_%d'%i])
+            first=db.value(base, RDF['_%d'%i])
         return members
 
-
-class rdflibSingle(object):
+class rdflibAbstract(object):
+    """Abstract base class for descriptors
+    Descriptors are to map class instance variables to predicates
+    optional cacheName is where to store items
+    range_type is the rdf:type of the range of this predicate"""
+    def __init__(self, pred, cacheName=None, range_type=None):
+        self.pred = pred
+        self.name = cacheName or pred
+        self.range_type = range_type
+    
+    @property
+    def range_class(self):
+        """return the class that this descriptor is mapped to through the range_type"""
+        if self.range_type:
+            try:
+                return self._mappedClass
+            except AttributeError:
+                log.warn("Descriptor %s has range of: %s but not yet mapped"%(self, self.range_type))
+                return rdfObject
+        else:
+            return rdfObject
+                    
+class rdflibSingle(rdflibAbstract):
     '''This is a Discriptor
     Takes a the URI of the predicate at initialization
     Expects to return a single item
     on Assignment will set that value to the 
     ONLY triple with that subject,predicate pair'''
-    def __init__(self, pred, cacheName=None):
-        self.pred=pred
-        self.name= cacheName or pred
+    def __init__(self, pred, cacheName=None, range_type=None):
+        super(rdflibSingle, self).__init__(pred, cacheName, range_type)
         
     def __get__(self, obj, cls):
         if obj is None:
@@ -113,7 +133,9 @@ class rdflibSingle(object):
         if self.name in obj.__dict__:
             return obj.__dict__[self.name]
         log.debug("Geting with descriptor %s for %s"%(self.pred,obj.resUri))
-        val=obj.__getitem__(self.pred)
+        val=obj.__getitem__(self.pred)        
+        if isinstance(val, BNode) or isinstance(val,URIRef):
+            val = self.range_class(val)
         obj.__dict__[self.name]= val
         return val
     
@@ -137,12 +159,11 @@ class rdflibSingle(object):
         return obj.db.remove((obj.resUri,self.pred, None))
 
    
-class rdflibMultiple(object):
+class rdflibMultiple(rdflibAbstract):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)'''
-    def __init__(self, pred, cacheName=None):
-        self.pred=pred
-        self.name= cacheName or pred
+    def __init__(self, pred, cacheName=None, range=None):
+        super(rdflibMultiple, self).__init__(pred, cacheName=None, range_type=None)
         
     def __get__(self, obj, cls):
         if obj is None:
@@ -151,9 +172,9 @@ class rdflibMultiple(object):
         # check to see if this is a Container or Collection
         # if so, return collection as a list
         if len(val) == 1 \
-           and (obj.db.value(o,rdf.first) or obj.db.value(o,rdf._1)): 
+           and (obj.db.value(o,RDF.first) or obj.db.value(o,RDF._1)): 
                   val=getList(obj, self.pred)
-        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and rdfObject(v) or v) for v in val]
+        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in val]
         setattr(obj, self.name, val)
         try:
             log.info("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
@@ -164,16 +185,18 @@ class rdflibMultiple(object):
 
 class rdfObject(object):
     db=ConjunctiveGraph()
+    """Default graph for access to instances of this type"""
     rdf_type=None
+    """rdf:type of instances of this class"""
     def __init__(self, resUri):
         if isinstance(resUri, rdfObject):
-            self.resUri=resUri.resUri
+            self.resUri=resUri.resUri 
             self.db=resUri.db
         elif isinstance(resUri, BNode):
             self.resUri=resUri
         else:
             self.resUri=URIRef(resUri)
-        rdftype = list(self.db.objects(resUri, rdf.type))
+        rdftype = list(self.db.objects(resUri, RDF.type))
         if len(rdftype)==1:
             self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
             self.namespace=Namespace(self.namespace)
@@ -210,7 +233,7 @@ class rdfObject(object):
 
         Each keyword must be a class descriptor
 
-        filter by rdf.type == cls.rdf_type is implicit
+        filter by RDF.type == cls.rdf_type is implicit
 
         Order helps, the first keyword should be the most restrictive
         """
@@ -229,8 +252,8 @@ class rdfObject(object):
                 obj = Literal(value)
             filters.append((pred,obj))
         # make sure we filter by type
-        if not (rdf.type,cls.rdf_type) in filters:
-            filters.append((rdf.type,cls.rdf_type))
+        if not (RDF.type,cls.rdf_type) in filters:
+            filters.append((RDF.type,cls.rdf_type))
         pred, obj = filters[0]
         print "Checking %s, %s" % (pred,obj)
         for sub in cls.db.subjects(pred,obj):
@@ -246,7 +269,7 @@ class rdfObject(object):
     def ClassInstances(cls):
         """return a generator for instances of this rdf:type
         you can look in MyClass.rdf_type to see the predicate being used"""
-        for i in cls.db.subjects(rdf.type, cls.rdf_type):
+        for i in cls.db.subjects(RDF.type, cls.rdf_type):
             yield cls(i)
     ClassInstances=classmethod(ClassInstances)
 
@@ -264,10 +287,6 @@ class rdfObject(object):
         #log.debug("Geting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Geting with __getitem__ %s for %s"%(pred,self.resUri))
         val=self.db.value(self.resUri,pred)
-        if isinstance(val,Literal):
-            val =  val.datatype and val.toPython() or unicode(val)
-        elif isinstance(val, BNode) or isinstance(val,URIRef):
-            val=rdfObject(val)
         return val
         
     def ppo(self,db=None):
