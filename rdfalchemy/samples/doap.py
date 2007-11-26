@@ -5,7 +5,7 @@ DOAP=Namespace("http://usefulinc.com/ns/doap#")
 FOAF=Namespace("http://xmlns.com/foaf/0.1/" )
 
 
-class Doap(rdfObject):
+class Project(rdfObject):
     rdf_type = DOAP.Project
     name = rdflibSingle(DOAP.name)
     created = rdflibSingle(DOAP.created)
