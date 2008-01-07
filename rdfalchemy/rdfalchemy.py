@@ -192,10 +192,15 @@ class rdfObject(object):
         if isinstance(resUri, rdfObject):
             self.resUri=resUri.resUri 
             self.db=resUri.db
-        elif isinstance(resUri, BNode):
+        elif isinstance(resUri, BNode) or isinstance(resUri, URIRef):
             self.resUri=resUri
+        elif resUri[0]=="<" and resUri[-1]==">":
+            self.resUri=URIRef(resUri[1:-1])
+        elif resUri.startswith("_:"):
+            self.resUri=BNode(resUri[1:-1])
         else:
-            self.resUri=URIRef(resUri)
+            raise AttributeError("cannot construct rdfObject from %s"%(str(resUri)))
+            
         rdftype = list(self.db.objects(resUri, RDF.type))
         if len(rdftype)==1:
             self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
