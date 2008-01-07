@@ -145,10 +145,12 @@ class rdflibSingle(rdflibAbstract):
         obj.__dict__[self.name]= value
         if isinstance(value,Literal):
             o = value
-        elif isinstance(value,str):
+        elif isinstance(value,str) or isinstance(value,unicode):
             o = Literal(value,)
+        elif isinstance(value,int) or isinstance(value,float):
+            o = Literal(str(value),)
         else:
-            o = Literal('What?')
+            raise NotImplimented
         obj.db.set((obj.resUri,self.pred, o))
         #return None
     
@@ -201,7 +203,7 @@ class rdfObject(object):
         else:
             raise AttributeError("cannot construct rdfObject from %s"%(str(resUri)))
             
-        rdftype = list(self.db.objects(resUri, RDF.type))
+        rdftype = list(self.db.objects(self.resUri, RDF.type))
         if len(rdftype)==1:
             self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
             self.namespace=Namespace(self.namespace)
