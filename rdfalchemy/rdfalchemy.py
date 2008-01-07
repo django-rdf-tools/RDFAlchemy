@@ -199,7 +199,7 @@ class rdfObject(object):
         elif resUri[0]=="<" and resUri[-1]==">":
             self.resUri=URIRef(resUri[1:-1])
         elif resUri.startswith("_:"):
-            self.resUri=BNode(resUri[1:-1])
+            self.resUri=BNode(resUri[2:])
         else:
             raise AttributeError("cannot construct rdfObject from %s"%(str(resUri)))
             
@@ -233,6 +233,8 @@ class rdfObject(object):
         else:
             raise LookupError("%s = %s not found"%(key,value))
     get_by=classmethod(get_by)
+    #short term hack.  Need to go to a sqlalchemy 0.4 style query method
+    query_get_by=get_by
         
     def filter_by(cls, **kwargs):
         """Class method returns a generator over classs instances
