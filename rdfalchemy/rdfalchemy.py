@@ -164,7 +164,7 @@ class rdflibSingle(rdflibAbstract):
 class rdflibMultiple(rdflibAbstract):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)'''
-    def __init__(self, pred, cacheName=None, range=None):
+    def __init__(self, pred, cacheName=None, range_type=None):
         super(rdflibMultiple, self).__init__(pred, cacheName=None, range_type=None)
         
     def __get__(self, obj, cls):
