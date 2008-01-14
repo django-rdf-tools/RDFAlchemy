@@ -143,7 +143,7 @@ class rdflibSingle(rdflibAbstract):
         log.debug("SET with descriptor value %s of type %s"%(value,type(value)))
         #setattr(obj, self.name, value)  #this recurses indefinatly
         obj.__dict__[self.name]= value
-        if isinstance(value,Literal):
+        if isinstance(value,Literal) or isinstance(value,URIRef) or isinstance(value,BNode):
             o = value
         elif isinstance(value,str) or isinstance(value,unicode):
             o = Literal(value,)
