@@ -179,9 +179,9 @@ class rdflibMultiple(rdflibAbstract):
         val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in val]
         setattr(obj, self.name, val)
         try:
-            log.info("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
+            log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
         except:
-            log.info("Geting %s for %s"%(self.pred,obj.resUri))
+            log.debug("Geting %s for %s"%(self.pred,obj.resUri))
         return val
 
 
@@ -191,6 +191,12 @@ class rdfObject(object):
     rdf_type=None
     """rdf:type of instances of this class"""
     def __init__(self, resUri):
+        """The constructor tries hard to do return you an rdfObject
+        the parameter resUri can be:
+         * an instance of an rdfObject
+         * an instance of a BNode or a URIRef
+         * an n3 uriref string like: <urn:isbn:1234567890>
+         * an n3 bnode string like _:xyz1234 """
         if isinstance(resUri, rdfObject):
             self.resUri=resUri.resUri 
             self.db=resUri.db
@@ -226,8 +232,12 @@ class rdfObject(object):
         if len(kwargs) != 1:
             raise ValueError("get_by did not want %i args"%(len(kwargs)))
         key,value = kwargs.items()[0]
+        if isinstance(value, URIRef) or isinstance(value,BNode) or isinstance(value,Literal):
+            o = value
+        else:
+            o = Literal(value)
         pred=cls.__dict__[key].pred
-        uri=cls.db.value(None,pred,Literal(value))
+        uri=cls.db.value(None,pred,o)
         if uri:
             return cls(uri)
         else:
