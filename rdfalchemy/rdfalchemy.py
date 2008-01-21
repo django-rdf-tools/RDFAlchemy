@@ -219,6 +219,9 @@ class rdfObject(object):
                 self.namespace, self.name = ns_n.groups()
                 self.namespace=Namespace(self.namespace)
                 
+    def n3(self):
+        return self.resUri.n3()
+                
     def get_by(cls, **kwargs):
         """Class Method, returns a single instance of the class
         by a single kwarg.  the keyword must be a descriptor of the
