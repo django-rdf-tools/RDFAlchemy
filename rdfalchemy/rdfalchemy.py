@@ -40,7 +40,7 @@ console = logging.StreamHandler()
 ## console.setLevel(logging.DEBUG)    ## <- the debug level goes here
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 console.setFormatter(formatter)
-log=logging.getLogger('rdfAlchemy')
+log=logging.getLogger('rdfalchemy')
 ##log.setLevel(logging.DEBUG)
 log.addHandler(console)
 
@@ -145,6 +145,8 @@ class rdflibSingle(rdflibAbstract):
         obj.__dict__[self.name]= value
         if isinstance(value,Literal) or isinstance(value,URIRef) or isinstance(value,BNode):
             o = value
+        elif isinstance(value,rdfObject):
+            o = value.resUri
         elif isinstance(value,str) or isinstance(value,unicode):
             o = Literal(value,)
         elif isinstance(value,int) or isinstance(value,float):
@@ -303,7 +305,7 @@ class rdfObject(object):
     GetRandom=classmethod(GetRandom)
         
     def __repr__(self):
-        return "<%s -> %s>"%(self.__class__, self.resUri)
+        return "<%s: %s>"%(self.__class__.__name__, self.n3())
 
     def __getitem__(self, pred):
         #log.debug("Geting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
