@@ -134,7 +134,7 @@ class rdflibSingle(rdflibAbstract):
             return obj.__dict__[self.name]
         log.debug("Geting with descriptor %s for %s"%(self.pred,obj.resUri))
         val=obj.__getitem__(self.pred)        
-        if isinstance(val, BNode) or isinstance(val,URIRef):
+        if isinstance(val, rdfObject) or isinstance(val, BNode) or isinstance(val,URIRef):
             val = self.range_class(val)
         obj.__dict__[self.name]= val
         return val

@@ -20,7 +20,7 @@ if __name__ == '__main__':
     accs_uri="http://doapspace.org/doap/sf/accs.rdf"
     rdfObject.db.load(accs_uri)
 
-    p = Doap.ClassInstances().next()
+    p = Project.ClassInstances().next()
     print "Name is %s" % p.name
     print "created on %s" % p.created
     
