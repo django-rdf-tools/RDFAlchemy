@@ -36,13 +36,13 @@ from itertools import chain
 import re
 import logging
 
-console = logging.StreamHandler()
+##console = logging.StreamHandler()
 ## console.setLevel(logging.DEBUG)    ## <- the debug level goes here
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-console.setFormatter(formatter)
+##formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+##console.setFormatter(formatter)
 log=logging.getLogger('rdfalchemy')
 ##log.setLevel(logging.DEBUG)
-log.addHandler(console)
+##log.addHandler(console)
 
 RDF  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 RDFS =Namespace("http://www.w3.org/2000/01/rdf-schema#")
@@ -50,6 +50,8 @@ OWL  =Namespace("http://www.w3.org/2002/07/owl#")
 
 re_ns_n = re.compile('(.*[/#])(.*)')
 
+from exceptions import *
+    
 # Look into caching as in:
 # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/276643
 # Note: Non data descriptors (get only) lookup in obj.__dict__ first
@@ -186,6 +188,63 @@ class rdflibMultiple(rdflibAbstract):
             log.debug("Geting %s for %s"%(self.pred,obj.resUri))
         return val
 
+class rdflibList(rdflibMultiple):
+    '''This is a Discriptor    
+       Expects to return a list of values (could be a list of one)'''
+    def __init__(self, pred, cacheName=None, range_type=None):
+        super(rdflibMultiple, self).__init__(pred, cacheName, range_type)
+        
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self        
+        #log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
+        log.debug("Geting %s for %s"%(self.pred,obj.resUri))
+        base = obj.db.value(obj.resUri,self.pred)
+        if not base:
+            return []
+        members=[]
+        first = obj.db.value(base, RDF.first)
+        # OK let's work at returning a list if there is an RDF.first
+        if not first:
+            raise AttributeError, ("expected node [%s] to be a list but it's not" %base.n3())
+        while first:
+            members.append(first)
+            base = db.value(base, RDF.rest)
+            first = db.value(base, RDF.first)
+
+        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in members]
+        setattr(obj, self.name, members)
+        return members
+        
+class rdflibContainer(rdflibMultiple):
+    '''This is a Discriptor    
+       Expects to return a list of values (could be a list of one)'''
+    def __init__(self, pred, cacheName=None, range_type=None):
+        super(rdflibMultiple, self).__init__(pred, cacheName, range_type)
+        
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self        
+        #log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
+        log.debug("Geting %s for %s"%(self.pred,obj.resUri))
+        base = obj.db.value(obj.resUri,self.pred)
+        if not base:
+            return []
+        members=[]
+        i=1        
+        first=db.value(base, RDF._1)
+        if not first:
+            raise AttributeError, ("expected node [%s] to be a list but it's not" % base.n3())
+        while first:
+            members.append(first)
+            i += 1
+            first=db.value(base, RDF['_%d'%i])
+
+        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in members]
+        setattr(obj, self.name, members)
+        return members
+        
+
 
 class rdfObject(object):
     db=ConjunctiveGraph()
@@ -316,6 +375,72 @@ class rdfObject(object):
         elif isinstance(val, BNode) or isinstance(val,URIRef): 
             val=rdfObject(val) 
         return val
+        
+    def remove(self, node=None, db=None, cascade = 'bnode', bnodeCheck=True):
+        """remove all triples where this rdfObject is the subject of the triple
+        db -- limit the remove operation to this graph
+        node -- node to remove from the graph defaults to self
+        cascade -- must be one of:
+                    * none -- remove none
+                    * bnode -- (default) remove all unreferenced bnodes
+                    * all -- remove all unreferenced bnode(s) AND uri(s)
+        bnodeCheck -- boolean 
+                    * True -- (default) check bnodes and raise exception if there are
+                              still references to this node
+                    * False -- do not check.  This can leave orphaned object reference 
+                               in triples.  Use only if you are resetting the value in
+                               the same transaction
+        """
+        if not node:
+            node = self.resUri
+        log.debug("Called remove on %s" % node)
+        if not db:
+            db = self.db
+        # we cannot delete a bnode if it is still referenced, 
+        # i.e. if it is the o of a s,p,o 
+        if bnodeCheck and isinstance(node,BNode):
+            for s,p,o in db.triples((None,None,node)):
+                raise RDFAlchemyError("Cannot delete a bnode %s becuase %s still references it" % (node.n3(), s.n3()))
+        # determine an appropriate test for cascade decisions
+        if cascade == 'bnode':
+            #we cannot delete a bnode if there are still references to it
+            def test(node):
+                if not isinstance(node,BNode):
+                    return False
+                for s,p,o in db.triples((None,None,node)):
+                        return False
+                return True
+        elif cascade == 'none':
+            def test(node):
+                return False
+        elif cascade == 'all':
+            def test(node):
+                if not (isinstance(node,BNode) or isinstance(node,URIRef)):
+                    return False
+                for s,p,o in db.triples((None,None,node)):
+                        return False
+                return True
+        else:
+            raise AttributeError, "unknown cascade argument"
+        for s,p,o in db.triples((node, None, None)):
+            db.remove((s,p,o))
+            if test(o):
+                self.remove(node=o, db=db,cascade=cascade)
+                
+    def rename(self, name, db=None):
+        """rename a node """
+        if not db:
+            db = self.db
+        if not (isinstance(name,BNode) or isinstance(name,URIRef)):
+            raise AttributeError, ("cannot rename to %s" % name)
+        for s,p,o in db.triples((self.resUri,None,None)):
+            db.set((name, p, o))
+        for s,p,o in db.triples((None,None,self.resUri)):
+            db.set((s, p, name))
+        
+        
+        
+        
         
     def ppo(self,db=None):
         """Like pretty print...
