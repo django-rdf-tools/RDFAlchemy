@@ -119,6 +119,23 @@ class rdflibAbstract(object):
                 return rdfObject
         else:
             return rdfObject
+            
+    def __delete__(self, obj):
+        # if this is a bnode like a list or a container a lot more should 
+        # be done ala getList above
+        log.debug("DELETE with descriptor for %s on %s"%(self.pred, obj.resUri))        
+        # first drop the cached value
+        del obj.__dict__[self.name]
+        # next, drop the triples         
+        for s,p,o in obj.db.triples((obj.resUri, self.pred, None)):
+            obj.db.remove((s,p,o))
+            #finally if the object in the triple was a bnode 
+            #cascade delete the thing it referenced
+            if isinstance(o,BNode):
+                rdfObject(o).remove(db=obj.db,cascade='bnode')
+
+
+
                     
 class rdflibSingle(rdflibAbstract):
     '''This is a Discriptor
@@ -158,12 +175,6 @@ class rdflibSingle(rdflibAbstract):
         obj.db.set((obj.resUri,self.pred, o))
         #return None
     
-    def __delete__(self, obj):
-        # if this is a bnode like a list or a container a lot more should 
-        # be done ala getList above
-        log.debug("DELETE with descriptor for %s on %s"%(self.pred, obj.resUri))        
-        return obj.db.remove((obj.resUri,self.pred, None))
-
    
 class rdflibMultiple(rdflibAbstract):
     '''This is a Discriptor    
@@ -187,6 +198,9 @@ class rdflibMultiple(rdflibAbstract):
         except:
             log.debug("Geting %s for %s"%(self.pred,obj.resUri))
         return val
+        
+
+
 
 class rdflibList(rdflibMultiple):
     '''This is a Discriptor    
@@ -437,9 +451,7 @@ class rdfObject(object):
             db.set((name, p, o))
         for s,p,o in db.triples((None,None,self.resUri)):
             db.set((s, p, name))
-        
-        
-        
+        self.resUri = name
         
         
     def ppo(self,db=None):
