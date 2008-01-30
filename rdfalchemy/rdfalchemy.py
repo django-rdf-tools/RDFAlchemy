@@ -28,7 +28,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-__version__ = "0.1dev"
+__version__ = "0.2dev"
 
 from rdflib import ConjunctiveGraph
 from rdflib import Literal, BNode, Namespace, URIRef
@@ -121,7 +121,13 @@ class rdflibAbstract(object):
             return rdfObject
             
     def __delete__(self, obj):
-        # if this is a bnode like a list or a container a lot more should 
+        """deletes or removes from the database triples with:
+          obj.resUri as subject and self.pred as predicate
+          if the object of that triple is a Literal that stop
+          if the object of that triple is a BNode 
+          then cascade the delete if that BNode has no further references to it
+          i.e. it is not the object in any other triples.
+        """ 
         # be done ala getList above
         log.debug("DELETE with descriptor for %s on %s"%(self.pred, obj.resUri))        
         # first drop the cached value
@@ -166,12 +172,8 @@ class rdflibSingle(rdflibAbstract):
             o = value
         elif isinstance(value,rdfObject):
             o = value.resUri
-        elif isinstance(value,str) or isinstance(value,unicode):
-            o = Literal(value,)
-        elif isinstance(value,int) or isinstance(value,float):
-            o = Literal(str(value),)
         else:
-            raise NotImplimented
+            o = Literal(value)
         obj.db.set((obj.resUri,self.pred, o))
         #return None
     
@@ -297,6 +299,20 @@ class rdfObject(object):
     def n3(self):
         return self.resUri.n3()
                 
+
+    @classmethod
+    def _getdescriptor(cls, key):
+        """__get_descriptor returns the descriptor for the key.
+        It essentially cls.__dict__[key] with recursive calls to super"""
+        #log.debug("Getting descriptor for class: %s with key: %s" % (cls,key))
+        # NOT SURE if mro is the way to do this or if we should call super or bases?
+        for kls in cls.mro():
+            if key in kls.__dict__:
+                return kls.__dict__[key]
+        raise AttributeError("descriptor %s not found for class %s" % (key,cls))
+        
+
+    @classmethod
     def get_by(cls, **kwargs):
         """Class Method, returns a single instance of the class
         by a single kwarg.  the keyword must be a descriptor of the
@@ -314,16 +330,17 @@ class rdfObject(object):
             o = value
         else:
             o = Literal(value)
-        pred=cls.__dict__[key].pred
+        pred=cls._getdescriptor(key).pred
         uri=cls.db.value(None,pred,o)
         if uri:
             return cls(uri)
         else:
             raise LookupError("%s = %s not found"%(key,value))
-    get_by=classmethod(get_by)
     #short term hack.  Need to go to a sqlalchemy 0.4 style query method
     query_get_by=get_by
         
+
+    @classmethod
     def filter_by(cls, **kwargs):
         """Class method returns a generator over classs instances
         meeting the kwargs conditions.
@@ -336,10 +353,7 @@ class rdfObject(object):
         """
         filters = []
         for key,value in kwargs.items():
-            try:
-                pred=cls.__dict__[key].pred
-            except LookupError :
-                raise LookupError ("%s not a valid descriptor for %s" % (key,cls))
+            pred = cls._getdescriptor(key).pred
             # try to make the value be OK for the triple query as an object
             if isinstance(value, rdfObject):
                 obj = rdfObject.resUri
@@ -361,21 +375,20 @@ class rdfObject(object):
                     print "Not %s" % s
                     continue
             yield cls(sub)
-    filter_by=classmethod(filter_by)
         
+    @classmethod
     def ClassInstances(cls):
         """return a generator for instances of this rdf:type
         you can look in MyClass.rdf_type to see the predicate being used"""
         for i in cls.db.subjects(RDF.type, cls.rdf_type):
             yield cls(i)
-    ClassInstances=classmethod(ClassInstances)
 
+    @classmethod
     def GetRandom(cls):
         """for develoment just returns a random instance of this class"""
         from random import randint
         xii=list(cls.ClassInstances())
         return xii[randint(0,len(xii)-1)]
-    GetRandom=classmethod(GetRandom)
         
     def __repr__(self):
         return "<%s: %s>"%(self.__class__.__name__, self.n3())
@@ -385,7 +398,7 @@ class rdfObject(object):
         log.debug("Geting with __getitem__ %s for %s"%(pred,self.resUri))
         val=self.db.value(self.resUri,pred)
         if isinstance(val,Literal):
-            val =  val.datatype and val.toPython() or unicode(val) 
+            val =  val.toPython() 
         elif isinstance(val, BNode) or isinstance(val,URIRef): 
             val=rdfObject(val) 
         return val
