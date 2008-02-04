@@ -1,13 +1,13 @@
-from rdfAlchemy import rdfObject, rdflibSingle, rdflibMultiple
+from rdfalchemy import rdfSubject, rdflibSingle, rdflibMultiple
 from rdflib import ConjunctiveGraph, Namespace, Literal
 
 OV = Namespace('http://owl.openvest.org/2005/10/Portfolio#')
 VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
 
-rdfObject.db = ConjunctiveGraph()
-rdfObject.db.load('./example.n3', format='n3')
+rdfSubject.db = ConjunctiveGraph()
+rdfSubject.db.load('./data/example.n3', format='n3')
 
-class Company(rdfObject):
+class Company(rdfSubject):
     owlType = OV.Company
     symbol = rdflibSingle(OV.symbol,'symbol')
     cik = rdflibSingle(OV.secCik,'cik')
@@ -48,7 +48,7 @@ print "%s: %s"%(c.companyName,c.stockDescription)
 Company.industry = rdflibSingle(OV.yindustry,'industry')
 
 ## add an attribute (from the database)
-c = Company.get_by(symbol = 'Java')
+c = Company.get_by(symbol = 'JAVA')
 c.industry = 'Computer stuff'
 
 ## delete an attribute (from the database)

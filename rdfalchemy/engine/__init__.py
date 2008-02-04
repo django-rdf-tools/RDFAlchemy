@@ -13,7 +13,7 @@ def create_engine(url=''):
        create_engine('zodb://localhost:8672')
     for zodb:
        the key in the Zope database is hardcoded as 'rdflib'
-       urls inding with .fs indicate FileStorage
+       urls ending in `.fs` indicate FileStorage
        otherwise ClientStoreage is assumed which requires
        a ZEO Server to be running"""
     if url=='' or url.startswith('IOMemory'):

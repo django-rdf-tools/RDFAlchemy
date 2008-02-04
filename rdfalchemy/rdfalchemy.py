@@ -32,12 +32,17 @@ __version__ = "0.2dev"
 
 from rdflib import ConjunctiveGraph
 from rdflib import Literal, BNode, Namespace, URIRef
-from itertools import chain
+from rdflib.Identifier import Identifier 
+from rdflib.exceptions import *
 import re
-import logging
 
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5    
+
+import logging
 ##console = logging.StreamHandler()
-## console.setLevel(logging.DEBUG)    ## <- the debug level goes here
 ##formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 ##console.setFormatter(formatter)
 log=logging.getLogger('rdfalchemy')
@@ -50,255 +55,84 @@ OWL  =Namespace("http://www.w3.org/2002/07/owl#")
 
 re_ns_n = re.compile('(.*[/#])(.*)')
 
-from exceptions import *
     
 # Look into caching as in:
 # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/276643
 # Note: Non data descriptors (get only) lookup in obj.__dict__ first
 #       Data descriptors (get and set) use the __get__ first
 
-# helper function, might be somewhere in rdflib I need to look for it there
-def getList(sub, pred=None, db=None):
-    """Attempts to return a list from sub (subject that is)
-    passed in if it is a Collection or a Container (Bag,Seq or Alt)"""
-    if not db:
-        if isinstance(sub,rdfObject):
-            db=sub.db
-        else:
-            db=rdfObject.db
-    if pred:
-        if isinstance(sub, rdfObject):
-            subUri=sub.resUri        
-        base = db.value(subUri,pred,any=True)
-    else:
-        # if there was no predicate assume a base node was passed in
-        base=sub
-    if type(base) != BNode:
-        # Doesn't look like a list or a collection, just return multiple values (or an error?)
-        val=[o for o in db.objects(subUri, pred)]
-        return val
-    members=[]
-    first = db.value(base, RDF.first)
-    # OK let's work at returning a list if there is an RDF.first
-    if first:
-        while first:
-            members.append(first)
-            base = db.value(base, RDF.rest)
-            first = db.value(base, RDF.first)
-        return members
-    # OK let's work at returning a Collection (Seq,Bag or Alt) if was no RDF.first
-    else:
-        i=1        
-        first=db.value(base, RDF._1)
-        if not first:
-            raise AttributeError, "Not a list, or collection but another type of BNode"
-        while first:
-            members.append(first)
-            i += 1
-            first=db.value(base, RDF['_%d'%i])
-        return members
 
-class rdflibAbstract(object):
-    """Abstract base class for descriptors
-    Descriptors are to map class instance variables to predicates
-    optional cacheName is where to store items
-    range_type is the rdf:type of the range of this predicate"""
-    def __init__(self, pred, cacheName=None, range_type=None):
-        self.pred = pred
-        self.name = cacheName or pred
-        self.range_type = range_type
-    
-    @property
-    def range_class(self):
-        """return the class that this descriptor is mapped to through the range_type"""
-        if self.range_type:
-            try:
-                return self._mappedClass
-            except AttributeError:
-                log.warn("Descriptor %s has range of: %s but not yet mapped"%(self, self.range_type))
-                return rdfObject
-        else:
-            return rdfObject
-            
-    def __delete__(self, obj):
-        """deletes or removes from the database triples with:
-          obj.resUri as subject and self.pred as predicate
-          if the object of that triple is a Literal that stop
-          if the object of that triple is a BNode 
-          then cascade the delete if that BNode has no further references to it
-          i.e. it is not the object in any other triples.
-        """ 
-        # be done ala getList above
-        log.debug("DELETE with descriptor for %s on %s"%(self.pred, obj.resUri))        
-        # first drop the cached value
-        del obj.__dict__[self.name]
-        # next, drop the triples         
-        for s,p,o in obj.db.triples((obj.resUri, self.pred, None)):
-            obj.db.remove((s,p,o))
-            #finally if the object in the triple was a bnode 
-            #cascade delete the thing it referenced
-            if isinstance(o,BNode):
-                rdfObject(o).remove(db=obj.db,cascade='bnode')
+##################################################################################
+# define our Base Class for all "subjects" in python 
+##################################################################################
 
-
-
-                    
-class rdflibSingle(rdflibAbstract):
-    '''This is a Discriptor
-    Takes a the URI of the predicate at initialization
-    Expects to return a single item
-    on Assignment will set that value to the 
-    ONLY triple with that subject,predicate pair'''
-    def __init__(self, pred, cacheName=None, range_type=None):
-        super(rdflibSingle, self).__init__(pred, cacheName, range_type)
-        
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self
-        if self.name in obj.__dict__:
-            return obj.__dict__[self.name]
-        log.debug("Geting with descriptor %s for %s"%(self.pred,obj.resUri))
-        val=obj.__getitem__(self.pred)        
-        if isinstance(val, rdfObject) or isinstance(val, BNode) or isinstance(val,URIRef):
-            val = self.range_class(val)
-        obj.__dict__[self.name]= val
-        return val
-    
-    def __set__(self, obj, value):
-        log.debug("SET with descriptor value %s of type %s"%(value,type(value)))
-        #setattr(obj, self.name, value)  #this recurses indefinatly
-        obj.__dict__[self.name]= value
-        if isinstance(value,Literal) or isinstance(value,URIRef) or isinstance(value,BNode):
-            o = value
-        elif isinstance(value,rdfObject):
-            o = value.resUri
-        else:
-            o = Literal(value)
-        obj.db.set((obj.resUri,self.pred, o))
-        #return None
-    
-   
-class rdflibMultiple(rdflibAbstract):
-    '''This is a Discriptor    
-       Expects to return a list of values (could be a list of one)'''
-    def __init__(self, pred, cacheName=None, range_type=None):
-        super(rdflibMultiple, self).__init__(pred, cacheName, range_type)
-        
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self
-        val=[o for o in obj.db.objects(obj.resUri, self.pred)]
-        # check to see if this is a Container or Collection
-        # if so, return collection as a list
-        if len(val) == 1 \
-           and (obj.db.value(o,RDF.first) or obj.db.value(o,RDF._1)): 
-                  val=getList(obj, self.pred)
-        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in val]
-        setattr(obj, self.name, val)
-        try:
-            log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
-        except:
-            log.debug("Geting %s for %s"%(self.pred,obj.resUri))
-        return val
-        
-
-
-
-class rdflibList(rdflibMultiple):
-    '''This is a Discriptor    
-       Expects to return a list of values (could be a list of one)'''
-    def __init__(self, pred, cacheName=None, range_type=None):
-        super(rdflibMultiple, self).__init__(pred, cacheName, range_type)
-        
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self        
-        #log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
-        log.debug("Geting %s for %s"%(self.pred,obj.resUri))
-        base = obj.db.value(obj.resUri,self.pred)
-        if not base:
-            return []
-        members=[]
-        first = obj.db.value(base, RDF.first)
-        # OK let's work at returning a list if there is an RDF.first
-        if not first:
-            raise AttributeError, ("expected node [%s] to be a list but it's not" %base.n3())
-        while first:
-            members.append(first)
-            base = db.value(base, RDF.rest)
-            first = db.value(base, RDF.first)
-
-        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in members]
-        setattr(obj, self.name, members)
-        return members
-        
-class rdflibContainer(rdflibMultiple):
-    '''This is a Discriptor    
-       Expects to return a list of values (could be a list of one)'''
-    def __init__(self, pred, cacheName=None, range_type=None):
-        super(rdflibMultiple, self).__init__(pred, cacheName, range_type)
-        
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self        
-        #log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
-        log.debug("Geting %s for %s"%(self.pred,obj.resUri))
-        base = obj.db.value(obj.resUri,self.pred)
-        if not base:
-            return []
-        members=[]
-        i=1        
-        first=db.value(base, RDF._1)
-        if not first:
-            raise AttributeError, ("expected node [%s] to be a list but it's not" % base.n3())
-        while first:
-            members.append(first)
-            i += 1
-            first=db.value(base, RDF['_%d'%i])
-
-        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v) for v in members]
-        setattr(obj, self.name, members)
-        return members
-        
-
-
-class rdfObject(object):
+#class rdfSubject(object):
+class rdfSubject(Identifier):
     db=ConjunctiveGraph()
     """Default graph for access to instances of this type"""
     rdf_type=None
     """rdf:type of instances of this class"""
-    def __init__(self, resUri):
-        """The constructor tries hard to do return you an rdfObject
+    def __new__(cls, resUri = None, **kwargs):
+        """docstring for __new__"""
+        if not resUri or isinstance(resUri, BNode):
+            sub = BNode.__new__(cls, resUri)
+            sub.node_type = 'bnode'
+        elif isinstance(resUri, (str, unicode)) and resUri.startswith("_:"):
+            sub = BNode.__new__(cls, resUri[2:])
+            sub.node_type = 'bnode'
+        elif isinstance(resUri, URIRef):
+            sub = URIRef.__new__(cls, resUri)
+            sub.node_type = 'uri'
+        elif isinstance(resUri, (str, unicode)) and resUri[0]=="<" and resUri[-1]==">":
+            sub = URIRef.__new__(cls, resUri[1:-1])
+            sub.node_type = 'uri'
+        elif isinstance(resUri, rdfSubject):
+            sub = Identifier.__new__(cls, resUri) 
+            sub.node_type = resUri.node_type
+            if sub.db != resUri.db:
+               sub.db = resUri.db
+        else:
+            raise AttributeError("cannot construct rdfSubject from %s"%(str(resUri)))
+        return sub
+
+    def __init__(self, resUri = None, **kwargs):
+        """The constructor tries hard to do return you an rdfSubject
         the parameter resUri can be:
-         * an instance of an rdfObject
+         * an instance of an rdfSubject
          * an instance of a BNode or a URIRef
          * an n3 uriref string like: <urn:isbn:1234567890>
-         * an n3 bnode string like _:xyz1234 """
-        if isinstance(resUri, rdfObject):
-            self.resUri=resUri.resUri 
-            self.db=resUri.db
-        elif isinstance(resUri, BNode) or isinstance(resUri, URIRef):
-            self.resUri=resUri
-        elif resUri[0]=="<" and resUri[-1]==">":
-            self.resUri=URIRef(resUri[1:-1])
-        elif resUri.startswith("_:"):
-            self.resUri=BNode(resUri[2:])
-        else:
-            raise AttributeError("cannot construct rdfObject from %s"%(str(resUri)))
-            
-        rdftype = list(self.db.objects(self.resUri, RDF.type))
+         * an n3 bnode string like _:xyz1234 
+        a null resUri will cause a new one created of 
+        this classes rdf_type
+         `kwargs` is a set of values that will be set"""
+        if kwargs:
+            self._set_with_dict(kwargs)
+
+        if not resUri:
+            # lets create a new one
+            if self.rdf_type:
+                self.db.set((self,RDF.type, self.rdf_type))
+        # lets get a default namespace for this 
+        # ??obsolete ???
+        rdftype = list(self.db.objects(self, RDF.type))
         if len(rdftype)==1:
             self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
             self.namespace=Namespace(self.namespace)
-        elif isinstance(self.resUri,URIRef):
-            ns_n =  re_ns_n.match(self.resUri)
+        elif isinstance(self,URIRef):
+            ns_n =  re_ns_n.match(self)
             if ns_n:
                 self.namespace, self.name = ns_n.groups()
                 self.namespace=Namespace(self.namespace)
                 
     def n3(self):
-        return self.resUri.n3()
-                
+        """n3 repr of this node"""
+        if self.node_type == 'bnode':
+            return "_:%s"%self
+        elif self.node_type == 'uri':
+            return "<%s>"%self
+        else:
+            raise AttributeError("Unknown node type for %s"(self))
+        
 
     @classmethod
     def _getdescriptor(cls, key):
@@ -311,6 +145,11 @@ class rdfObject(object):
                 return kls.__dict__[key]
         raise AttributeError("descriptor %s not found for class %s" % (key,cls))
         
+    #short term hack.  Need to go to a sqlalchemy 0.4 style query method
+    # obj.query.get_by should map to obj.get_by  ..same for fetch_by
+    @property
+    def query(self):
+        return self    
 
     @classmethod
     def get_by(cls, **kwargs):
@@ -324,7 +163,7 @@ class rdfObject(object):
             the keyword should map to an rdf predicate
             that is of type owl:InverseFunctional"""
         if len(kwargs) != 1:
-            raise ValueError("get_by did not want %i args"%(len(kwargs)))
+            raise ValueError("get_by wanted eaactly 1 but got  %i args\nMaybe you wanted filter_by"%(len(kwargs)))
         key,value = kwargs.items()[0]
         if isinstance(value, URIRef) or isinstance(value,BNode) or isinstance(value,Literal):
             o = value
@@ -336,9 +175,6 @@ class rdfObject(object):
             return cls(uri)
         else:
             raise LookupError("%s = %s not found"%(key,value))
-    #short term hack.  Need to go to a sqlalchemy 0.4 style query method
-    query_get_by=get_by
-        
 
     @classmethod
     def filter_by(cls, **kwargs):
@@ -355,9 +191,7 @@ class rdfObject(object):
         for key,value in kwargs.items():
             pred = cls._getdescriptor(key).pred
             # try to make the value be OK for the triple query as an object
-            if isinstance(value, rdfObject):
-                obj = rdfObject.resUri
-            elif isinstance(value, URIRef) or isinstance(value,BNode):
+            if isinstance(value, Identifier):
                 obj = value
             else:
                 obj = Literal(value)
@@ -366,15 +200,18 @@ class rdfObject(object):
         if not (RDF.type,cls.rdf_type) in filters:
             filters.append((RDF.type,cls.rdf_type))
         pred, obj = filters[0]
-        print "Checking %s, %s" % (pred,obj)
+        log.debug("Checking %s, %s" % (pred,obj))
         for sub in cls.db.subjects(pred,obj):
-            print "maybe %s" % sub
+            log.debug( "maybe %s" % sub )
             for pred,obj in filters[1:]:
-                print "Checking %s, %s" % (pred,obj)
-                if not list(cls.db.triples((sub,pred,obj))):
-                    print "Not %s" % s
-                    continue
-            yield cls(sub)
+                log.debug("Checking %s, %s" % (pred,obj))
+                try:
+                    cls.db.triples((sub,pred,obj)).next()
+                except:
+                    log.warn( "No %s" % sub )
+                    break
+            else:
+                yield cls(sub)
         
     @classmethod
     def ClassInstances(cls):
@@ -391,20 +228,42 @@ class rdfObject(object):
         return xii[randint(0,len(xii)-1)]
         
     def __repr__(self):
-        return "<%s: %s>"%(self.__class__.__name__, self.n3())
-
+        return """%s('%s')""" % (self.__class__.__name__, self.n3())
+    
     def __getitem__(self, pred):
-        #log.debug("Geting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
-        log.debug("Geting with __getitem__ %s for %s"%(pred,self.resUri))
-        val=self.db.value(self.resUri,pred)
+        #log.debug("Getting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
+        log.debug("Getting with __getitem__ %s for %s"%(pred,self.n3()))
+        val=self.db.value(self,pred)
         if isinstance(val,Literal):
             val =  val.toPython() 
         elif isinstance(val, BNode) or isinstance(val,URIRef): 
-            val=rdfObject(val) 
+            val=rdfSubject(val) 
         return val
         
-    def remove(self, node=None, db=None, cascade = 'bnode', bnodeCheck=True):
-        """remove all triples where this rdfObject is the subject of the triple
+    ## def __setitem__(self,pred,value):
+    ## not even sure if this is a good idea here
+        
+    def __delitem__(self, pred):
+        #log.debug("Deleting with __delitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
+        log.debug("Deleting with __delitem__ %s for %s"%(pred,self))
+        for s,p,o in self.db.triples((self, pred, None)):
+            self.db.remove((s,p,o))
+            #finally if the object in the triple was a bnode 
+            #cascade delete the thing it referenced
+            if isinstance(o,BNode):
+                rdfSubject(o)._remove(db=self.db,cascade='bnode')
+        
+    def _set_with_dict(self, kv):
+        """for each key,value pair in dict kv
+               set self.key = value"""
+        for key,value in kv.items():
+            #item.__class__._getdescriptor('authors').__get__(item, item.__class__)
+            descriptor = self.__class__._getdescriptor(key)
+            descriptor.__set__(self, value)
+        
+        
+    def _remove(self, node=None, db=None, cascade = 'bnode', bnodeCheck=True):
+        """remove all triples where this rdfSubject is the subject of the triple
         db -- limit the remove operation to this graph
         node -- node to remove from the graph defaults to self
         cascade -- must be one of:
@@ -419,20 +278,22 @@ class rdfObject(object):
                                the same transaction
         """
         if not node:
-            node = self.resUri
+            node = self
         log.debug("Called remove on %s" % node)
         if not db:
             db = self.db
         # we cannot delete a bnode if it is still referenced, 
         # i.e. if it is the o of a s,p,o 
-        if bnodeCheck and isinstance(node,BNode):
-            for s,p,o in db.triples((None,None,node)):
-                raise RDFAlchemyError("Cannot delete a bnode %s becuase %s still references it" % (node.n3(), s.n3()))
+        if bnodeCheck:
+            if isinstance(node,BNode) or isinstance(node,rdfSubject) and node.node_type=='bnode':
+                for s,p,o in db.triples((None,None,node)):
+                    raise RDFAlchemyError("Cannot delete a bnode %s becuase %s still references it" % (node.n3(), s.n3()))
         # determine an appropriate test for cascade decisions
         if cascade == 'bnode':
             #we cannot delete a bnode if there are still references to it
             def test(node):
-                if not isinstance(node,BNode):
+                if isinstance(node,(URIRef,Literal)) \
+                   or isinstance(node,rdfSubject) and node.node_type <> 'bnode':
                     return False
                 for s,p,o in db.triples((None,None,node)):
                         return False
@@ -452,25 +313,34 @@ class rdfObject(object):
         for s,p,o in db.triples((node, None, None)):
             db.remove((s,p,o))
             if test(o):
-                self.remove(node=o, db=db,cascade=cascade)
+                self._remove(node=o, db=db,cascade=cascade)
                 
-    def rename(self, name, db=None):
+    def _rename(self, name, db=None):
         """rename a node """
         if not db:
             db = self.db
         if not (isinstance(name,BNode) or isinstance(name,URIRef)):
             raise AttributeError, ("cannot rename to %s" % name)
-        for s,p,o in db.triples((self.resUri,None,None)):
+        for s,p,o in db.triples((self,None,None)):
             db.set((name, p, o))
-        for s,p,o in db.triples((None,None,self.resUri)):
+        for s,p,o in db.triples((None,None,self)):
             db.set((s, p, name))
         self.resUri = name
         
         
-    def ppo(self,db=None):
+    def _ppo(self,db=None):
         """Like pretty print...
         Return a 'pretty predicate,object' of self
         returning all predicate object pairs with qnames"""
         db = db or self.db
-        for p,o in db.predicate_objects(self.resUri):
+        for p,o in db.predicate_objects(self):
             print "%20s = %s"% (db.qname(p),str(o))
+        print " "
+
+    def md5_term_hash(self):
+        d = md5(str(self))
+        d.update("R")
+        return d.hexdigest()
+        
+    
+
