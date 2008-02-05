@@ -250,7 +250,8 @@ class rdfSubject(Identifier):
             self.db.remove((s,p,o))
             #finally if the object in the triple was a bnode 
             #cascade delete the thing it referenced
-            if isinstance(o,BNode):
+            # ?? FIXME Do we really want to cascade if it's an rdfSubject??
+            if isinstance(o,BNode) or isinstance(o,rdfSubject) and o.node_type == 'bnode':
                 rdfSubject(o)._remove(db=self.db,cascade='bnode')
         
     def _set_with_dict(self, kv):

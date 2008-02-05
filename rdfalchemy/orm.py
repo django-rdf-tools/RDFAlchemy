@@ -7,28 +7,30 @@ Created by Philip Cooper on 2007-11-23.
 Copyright (c) 2007 Openvest. All rights reserved.
 """
 
-from rdfalchemy import rdfObject, rdflibAbstract
+from rdfalchemy import rdfSubject
+from descriptors import rdflibAbstract
 
 import logging
 log=logging.getLogger('rdfAlchemy')
 
-def allsub(cl):
+def allsub(cl, beenthere = set([])):
     "return all subclasses of the given class"
-    sub = set(cl.__subclasses__())
-    for onesub in cl.__subclasses__():
-        sub |= allsub(onesub)
+    sub = set(cl.__subclasses__()) | beenthere
+    newsubs = set(cl.__subclasses__()) - beenthere
+    for onesub in newsubs:
+        sub |= allsub(onesub, sub)
     return sub
     
 
 def mapper(*classes):
     """Map the classes given to allow descriptors with ranges to the proper Class of that type
-    default if no args is to map all subclasses(recursivly) of rdfObject
+    default if no args is to map all subclasses(recursivly) of rdfSubject
     
     preforms the mapping
     
     returns a dict of {rdf_type: mapped_class} for further processing"""
     if not classes:
-        classes = allsub(rdfObject)
+        classes = allsub(rdfSubject)
     class_dict = dict([(str(cl.rdf_type), cl) for cl in classes])
     for cl in classes:  # for each class
         for v in cl.__dict__.values():  # for each desciptor

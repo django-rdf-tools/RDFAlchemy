@@ -1,6 +1,6 @@
 from sparql import SPARQLGraph
 
-from rdflib import Graph, Literal, BNode, Namespace, URIRef
+from rdflib import Literal, BNode, Namespace, URIRef
 from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request, HTTPError

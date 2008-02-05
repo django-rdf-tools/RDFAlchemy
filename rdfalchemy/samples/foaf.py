@@ -17,10 +17,10 @@ class Agent(rdfSubject):
     mbox = rdflibSingle(FOAF.mbox)
     openid = rdflibSingle(FOAF.openid)    
 
+
 class Person(Agent):
     rdf_type = FOAF.Person
     first = rdflibSingle(FOAF.firstName,'first')
     last = rdflibSingle(FOAF.surname,'last')
     givenname = rdflibSingle(FOAF.givenname,'first')
     surname = rdflibSingle(FOAF.surname,'last')
-    
