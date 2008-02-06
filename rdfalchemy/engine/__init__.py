@@ -7,11 +7,14 @@ def create_engine(url=''):
     """Takes a url string and returns an open
     rdflib ConjunctiveGraph
     e.g.:
-       create_engine('mysql://myname@localhost/rdflibdb')
-       create_engine('sleepycat://~/working/rdf_db')
-       create_engine('zodb:///var/rdflib/Data.fs')
-       create_engine('zodb://localhost:8672')
+      
+      - create_engine('mysql://myname@localhost/rdflibdb')
+      - create_engine('sleepycat://~/working/rdf_db')
+      - create_engine('zodb:///var/rdflib/Data.fs')
+      - create_engine('zodb://localhost:8672')
+    
     for zodb:
+    
        the key in the Zope database is hardcoded as 'rdflib'
        urls ending in `.fs` indicate FileStorage
        otherwise ClientStoreage is assumed which requires

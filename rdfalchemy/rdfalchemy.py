@@ -67,71 +67,70 @@ re_ns_n = re.compile('(.*[/#])(.*)')
 ##################################################################################
 
 #class rdfSubject(object):
-class rdfSubject(Identifier):
+class rdfSubject(object):
     db=ConjunctiveGraph()
     """Default graph for access to instances of this type"""
     rdf_type=None
     """rdf:type of instances of this class"""
-    def __new__(cls, resUri = None, **kwargs):
-        """docstring for __new__"""
-        if not resUri or isinstance(resUri, BNode):
-            sub = BNode.__new__(cls, resUri)
-            sub.node_type = 'bnode'
-        elif isinstance(resUri, (str, unicode)) and resUri.startswith("_:"):
-            sub = BNode.__new__(cls, resUri[2:])
-            sub.node_type = 'bnode'
-        elif isinstance(resUri, URIRef):
-            sub = URIRef.__new__(cls, resUri)
-            sub.node_type = 'uri'
-        elif isinstance(resUri, (str, unicode)) and resUri[0]=="<" and resUri[-1]==">":
-            sub = URIRef.__new__(cls, resUri[1:-1])
-            sub.node_type = 'uri'
-        elif isinstance(resUri, rdfSubject):
-            sub = Identifier.__new__(cls, resUri) 
-            sub.node_type = resUri.node_type
-            if sub.db != resUri.db:
-               sub.db = resUri.db
-        else:
-            raise AttributeError("cannot construct rdfSubject from %s"%(str(resUri)))
-        return sub
+## 
+##     def __new__(cls, resUri = None, **kwargs):
+##         obj = object.__new__(cls)
+##         obj.resUri = resUri
+##         return obj.__init__(resUri, **kwargs)
+        
 
     def __init__(self, resUri = None, **kwargs):
         """The constructor tries hard to do return you an rdfSubject
-        the parameter resUri can be:
-         * an instance of an rdfSubject
-         * an instance of a BNode or a URIRef
-         * an n3 uriref string like: <urn:isbn:1234567890>
-         * an n3 bnode string like _:xyz1234 
-        a null resUri will cause a new one created of 
-        this classes rdf_type
-         `kwargs` is a set of values that will be set"""
+
+        :param resUri: can be one of
+
+           * an instance of an rdfSubject
+           * an instance of a BNode or a URIRef
+           * an n3 uriref string like: <urn:isbn:1234567890>
+           * an n3 bnode string like _:xyz1234 
+        
+        :param resUri: if None then create an instance with a BNode resUri
+        :param kwargs: is a set of values that will be set using the keys to find the appropriate descriptor"""
+        
+        if not resUri:
+            self.resUri = BNode()
+            if self.rdf_type:
+                self.db.add((self.resUri,RDF.type,self.rdf_type))
+        elif isinstance(resUri, (BNode, URIRef)):
+            self.resUri=resUri
+        elif isinstance(resUri, rdfSubject):
+            self.resUri=resUri.resUri 
+            self.db=resUri.db
+        elif instance(resUri, (str, unicode)):
+            if resUri[0]=="<" and resUri[-1]==">":
+                self.resUri=URIRef(resUri[1:-1])
+            elif resUri.startswith("_:"):
+                self.resUri=BNode(resUri[2:])
+        else:
+            raise AttributeError("cannot construct rdfSubject from %s"%(str(resUri)))
+        
         if kwargs:
             self._set_with_dict(kwargs)
 
         if not resUri:
             # lets create a new one
             if self.rdf_type:
-                self.db.set((self,RDF.type, self.rdf_type))
+                self.db.set((self.resUri,RDF.type, self.rdf_type))
         # lets get a default namespace for this 
         # ??obsolete ???
-        rdftype = list(self.db.objects(self, RDF.type))
+        rdftype = list(self.db.objects(self.resUri, RDF.type))
         if len(rdftype)==1:
             self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
             self.namespace=Namespace(self.namespace)
-        elif isinstance(self,URIRef):
-            ns_n =  re_ns_n.match(self)
+        elif isinstance(self.resUri, URIRef):
+            ns_n =  re_ns_n.match(self.resUri)
             if ns_n:
                 self.namespace, self.name = ns_n.groups()
                 self.namespace=Namespace(self.namespace)
                 
     def n3(self):
         """n3 repr of this node"""
-        if self.node_type == 'bnode':
-            return "_:%s"%self
-        elif self.node_type == 'uri':
-            return "<%s>"%self
-        else:
-            raise AttributeError("Unknown node type for %s"(self))
+        return self.resUri.n3()
         
 
     @classmethod
@@ -157,9 +156,10 @@ class rdfSubject(Identifier):
         by a single kwarg.  the keyword must be a descriptor of the
         class.
         example:
+        
             bigBlue = Company.get_by(symbol='IBM')
 
-        OWL Note:
+        :Note:
             the keyword should map to an rdf predicate
             that is of type owl:InverseFunctional"""
         if len(kwargs) != 1:
@@ -233,7 +233,7 @@ class rdfSubject(Identifier):
     def __getitem__(self, pred):
         #log.debug("Getting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Getting with __getitem__ %s for %s"%(pred,self.n3()))
-        val=self.db.value(self,pred)
+        val=self.db.value(self.resUri, pred)
         if isinstance(val,Literal):
             val =  val.toPython() 
         elif isinstance(val, BNode) or isinstance(val,URIRef): 
@@ -246,55 +246,62 @@ class rdfSubject(Identifier):
     def __delitem__(self, pred):
         #log.debug("Deleting with __delitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Deleting with __delitem__ %s for %s"%(pred,self))
-        for s,p,o in self.db.triples((self, pred, None)):
+        for s,p,o in self.db.triples((self.resUri, pred, None)):
             self.db.remove((s,p,o))
             #finally if the object in the triple was a bnode 
             #cascade delete the thing it referenced
             # ?? FIXME Do we really want to cascade if it's an rdfSubject??
-            if isinstance(o,BNode) or isinstance(o,rdfSubject) and o.node_type == 'bnode':
+            if isinstance(o, (BNode, rdfSubject)):
                 rdfSubject(o)._remove(db=self.db,cascade='bnode')
         
     def _set_with_dict(self, kv):
-        """for each key,value pair in dict kv
-               set self.key = value"""
+        """
+        :param kv: a dict ::
+        
+          for each key,value pair in dict kv
+               set self.key = value
+               
+        """
         for key,value in kv.items():
             #item.__class__._getdescriptor('authors').__get__(item, item.__class__)
             descriptor = self.__class__._getdescriptor(key)
             descriptor.__set__(self, value)
         
         
-    def _remove(self, node=None, db=None, cascade = 'bnode', bnodeCheck=True):
+    def _remove(self, db=None, cascade = 'bnode', bnodeCheck=True):
         """remove all triples where this rdfSubject is the subject of the triple
-        db -- limit the remove operation to this graph
-        node -- node to remove from the graph defaults to self
-        cascade -- must be one of:
-                    * none -- remove none
+        
+        :param db: limit the remove operation to this graph
+        :param cascade: must be one of:
+        
+                    * none --  remove none
                     * bnode -- (default) remove all unreferenced bnodes
                     * all -- remove all unreferenced bnode(s) AND uri(s)
-        bnodeCheck -- boolean 
+        
+        :param bnodeCheck: boolean 
+        
                     * True -- (default) check bnodes and raise exception if there are
-                              still references to this node
-                    * False -- do not check.  This can leave orphaned object reference 
-                               in triples.  Use only if you are resetting the value in
-                               the same transaction
+                      still references to this node
+                    * False --  do not check.  This can leave orphaned object reference 
+                      in triples.  Use only if you are resetting the value in
+                      the same transaction
         """
-        if not node:
-            node = self
-        log.debug("Called remove on %s" % node)
+        noderef = self.resUri            
+        log.debug("Called remove on %s" % self)
         if not db:
             db = self.db
+        
         # we cannot delete a bnode if it is still referenced, 
         # i.e. if it is the o of a s,p,o 
         if bnodeCheck:
-            if isinstance(node,BNode) or isinstance(node,rdfSubject) and node.node_type=='bnode':
-                for s,p,o in db.triples((None,None,node)):
-                    raise RDFAlchemyError("Cannot delete a bnode %s becuase %s still references it" % (node.n3(), s.n3()))
+            if isinstance(noderef ,BNode):
+                for s,p,o in db.triples((None,None,noderef)):
+                    raise RDFAlchemyError("Cannot delete a bnode %s becuase %s still references it" % (noderef.n3(), s.n3()))
         # determine an appropriate test for cascade decisions
         if cascade == 'bnode':
             #we cannot delete a bnode if there are still references to it
             def test(node):
-                if isinstance(node,(URIRef,Literal)) \
-                   or isinstance(node,rdfSubject) and node.node_type <> 'bnode':
+                if isinstance(node,(URIRef,Literal)):
                     return False
                 for s,p,o in db.triples((None,None,node)):
                         return False
@@ -304,27 +311,28 @@ class rdfSubject(Identifier):
                 return False
         elif cascade == 'all':
             def test(node):
-                if not (isinstance(node,BNode) or isinstance(node,URIRef)):
+                if isinstance(node, Literal):
                     return False
                 for s,p,o in db.triples((None,None,node)):
                         return False
                 return True
         else:
             raise AttributeError, "unknown cascade argument"
-        for s,p,o in db.triples((node, None, None)):
+        for s,p,o in db.triples((noderef, None, None)):
             db.remove((s,p,o))
             if test(o):
-                self._remove(node=o, db=db,cascade=cascade)
+                rdfSubject(o)._remove(db=db,cascade=cascade)
+
                 
     def _rename(self, name, db=None):
         """rename a node """
         if not db:
             db = self.db
-        if not (isinstance(name,BNode) or isinstance(name,URIRef)):
+        if not (isinstance(name, (BNode,URIRef))):
             raise AttributeError, ("cannot rename to %s" % name)
-        for s,p,o in db.triples((self,None,None)):
+        for s,p,o in db.triples((self.resUri,None,None)):
             db.set((name, p, o))
-        for s,p,o in db.triples((None,None,self)):
+        for s,p,o in db.triples((None,None,self.resUri)):
             db.set((s, p, name))
         self.resUri = name
         
@@ -334,7 +342,7 @@ class rdfSubject(Identifier):
         Return a 'pretty predicate,object' of self
         returning all predicate object pairs with qnames"""
         db = db or self.db
-        for p,o in db.predicate_objects(self):
+        for p,o in db.predicate_objects(self.resUri):
             print "%20s = %s"% (db.qname(p),str(o))
         print " "
 

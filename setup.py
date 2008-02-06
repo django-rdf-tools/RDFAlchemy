@@ -16,4 +16,12 @@ setup(
     install_requires=["rdflib>=2.4.0"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
+    platforms = ["any"],
+    classifiers = ["Programming Language :: Python",
+                   "License :: OSI Approved :: BSD License",
+                   "Topic :: Software Development :: Libraries :: Python Modules",
+                   "Operating System :: OS Independent",
+                   "Natural Language :: English",
+                   ],
+
 )

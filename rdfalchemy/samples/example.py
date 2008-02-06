@@ -8,7 +8,7 @@ rdfSubject.db = ConjunctiveGraph()
 rdfSubject.db.load('./data/example.n3', format='n3')
 
 class Company(rdfSubject):
-    owlType = OV.Company
+    rdf_type = OV.Company
     symbol = rdflibSingle(OV.symbol,'symbol')
     cik = rdflibSingle(OV.secCik,'cik')
     companyName = rdflibSingle(OV.companyName)

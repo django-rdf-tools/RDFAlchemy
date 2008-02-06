@@ -30,10 +30,8 @@ class DumpSink(object):
 class SesameGraph(SPARQLGraph):
     """openrdf-sesame graph via http
     Uses the sesame2 HTTP communication protocol
-    to provide rdflib type api
-    constructor takes http endpoint and repository name
-    e.g.
-      SesameGraph('http://www.openvest.org:8080/sesame/repositories/Test')"""
+    to provide rdflib type api constructor takes http endpoint and repository name
+    e.g. SesameGraph('http://www.openvest.org:8080/sesame/repositories/Test')"""
     
     def __init__(self, url, context=None):
         self.url = url
@@ -162,15 +160,18 @@ class SesameGraph(SPARQLGraph):
         return uri
 
     def parse(self, source, publicID=None, format="xml", method='POST'):
-        """ Parse source into Graph
+        """
+        Parse source into Graph
 
         Graph will get loaded into it's own context (sub graph). 
         Format defaults to xml (AKA rdf/xml). 
-        The publicID argument is for specifying the logical URI 
-        for the case that it's different from the physical source URI. 
-        Returns the context into which  the source was parsed.
-          POST method adds data in a context
-          PUT method replaces data in a context
+        
+        :param publicID: *optional* the logical URI if it's different from the physical source URI. 
+        :returns: Returns the context into which  the source was parsed.
+        :param method: must be one of
+        
+          'POST' -- method adds data to a context
+          'PUT' -- method replaces data in a context
         """
         url = self.url+'/statements'
         if not source.startswith('http://'):

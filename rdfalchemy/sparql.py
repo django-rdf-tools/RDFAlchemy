@@ -27,8 +27,7 @@ class SPARQLGraph(object):
     """provides (some) rdflib api via http to a SPARQL endpoint
     gives 'read-only' access to the graph
     constructor takes http endpoint and repository name
-    e.g.
-      SPARQLGraph('http://localhost:2020/sparql')"""
+    e.g.  SPARQLGraph('http://localhost:2020/sparql')"""
     
     def __init__(self, url, context=None):
         self.url = url
@@ -38,8 +37,10 @@ class SPARQLGraph(object):
         """
         Executes a SPARQL Construct
         strOrTriple - can be either:
-          a string in which case it it considered a CONSTRUCT query
-          a triple in which case it acts as the rdflib `triples((s,p,o))`
+        
+          * a string in which case it it considered a CONSTRUCT query
+          * a triple in which case it acts as the rdflib `triples((s,p,o))`
+        
         initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
         initNS - A mapping from a namespace prefix to a namespace
         
@@ -65,10 +66,13 @@ class SPARQLGraph(object):
         return subgraph
         
     def triples(self, (s,p,o), method='CONSTRUCT'):
-        """returns a generator over triples matching the pattern
-        method must be 'CONSTRUCT' or 'SELECT'
-               CONSTRUCT calls CONSTRUCT query and returns a Graph result 
-               SELECT calls a SELECT query and returns an interator streaming over the results
+        """
+        :returns: a generator over triples matching the pattern
+        :param method: must be 'CONSTRUCT' or 'SELECT'
+        
+             * CONSTRUCT calls CONSTRUCT query and returns a Graph result 
+             * SELECT calls a SELECT query and returns an interator streaming over the results
+        
         Use SELECT if you expect a large result set or may consume less than the entire result"""
         if method == 'CONSTRUCT':
             return self.construct((s,p,o)).triples((None,None,None))
@@ -123,24 +127,17 @@ class SPARQLGraph(object):
             yield p, o
 
 
-    def value(self, subject=None, predicate=RDF.value, object=None,
-              default=None, any=True):
+    def value(self, subject=None, predicate=RDF.value, object=None, default=None, any=True):
         """Get a value for a pair of two criteria
 
         Exactly one of subject, predicate, object must be None. Useful if one
         knows that there may only be one value.
 
-        It is one of those situations that occur a lot, hence this
-        'macro' like utility
+        It is one of those situations that occur a lot, hence this *macro* like utility
 
-        Parameters:
-        -----------
-        subject, predicate, object  -- exactly one must be None
-        default -- value to be returned if no values found
-        any -- if True:
-                 return any value in the case there is more than one
-               else:
-                 raise UniquenessError
+        :param  subject, predicate, object: exactly one must be None
+        :param default: value to be returned if no values found
+        :param any:     if more than one answer return **any one** answer, otherwise `raise UniquenessError`
         """
         retval = default
 
@@ -216,12 +213,13 @@ class SPARQLGraph(object):
     def query(self, strOrQuery, initBindings={}, initNs={}, resultMethod="xml",processor="sparql"):
         """
         Executes a SPARQL query against this Graph
-        strOrQuery - Is either a string consisting of the SPARQL query 
-        initBindings - optional mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
-        initNS - optional mapping from a namespace prefix to a namespace
-        resultMethod - results query requested (must be 'xml' or 'json') 
-                       xml streams over the result set and json must read the entire set  to succeed 
-        processor - The kind of RDF query (must be 'sparql' or 'serql')
+        
+        :param strOrQuery: Is either a string consisting of the SPARQL query 
+        :param initBindings: *optional* mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        :param initNs: optional mapping from a namespace prefix to a namespace
+        :param resultMethod: results query requested (must be 'xml' or 'json') 
+         xml streams over the result set and json must read the entire set  to succeed 
+        :param processor: The kind of RDF query (must be 'sparql' or 'serql')
         """
         query = strOrQuery
         if initNs:
@@ -304,14 +302,15 @@ class SPARQLGraph(object):
     def describe(self, s_or_po, initBindings={}, initNs={}):
         """
         Executes a SPARQL describe of resource
-        s_or_po is either:
+        
+        :param s_or_po:  is either
         
           * a subject ... should be a URIRef
           * a tuple of (predicate,object) ... pred should be inverse functional
           * a describe query string
           
-        initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
-        initNS - A mapping from a namespace prefix to a namespace
+        :param initBindings: A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        :param initNs: A mapping from a namespace prefix to a namespace
         """
         if isinstance(s_or_po, str):
             query = s_or_po

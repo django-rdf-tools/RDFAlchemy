@@ -64,7 +64,9 @@ def getList(sub, pred=None, db=None):
 def value2object(value):
     """suitable for a triple takes a value and returns a Literal, URIRef or BNode 
     suitable for a triple"""
-    if isinstance(value,Identifier):
+    if isinstance(value, rdfSubject):
+        return value.resUri
+    elif isinstance(value, Identifier):
         return value
     else:
         return Literal(value)
@@ -142,7 +144,7 @@ class rdflibSingle(rdflibAbstract):
         #setattr(obj, self.name, value)  #this recurses indefinatly
         obj.__dict__[self.name]= value
         o =value2object(value)
-        obj.db.set((obj, self.pred, o))
+        obj.db.set((obj.resUri, self.pred, o))
         #return None
     
    
@@ -184,11 +186,11 @@ class rdflibMultiple(rdflibAbstract):
             obj.__dict__[self.name] = oldvals
         for value in oldvals:
             if value not in newvals:
-                obj.db.remove((obj,self.pred, value2object(value)))
+                obj.db.remove((obj.resUri,self.pred, value2object(value)))
                 log.debug("removing: %s, %s, %s"%(obj.n3(),self.pred,value))
         for value in newvals:
             if value not in oldvals:
-                obj.db.add((obj, self.pred, value2object(value)))
+                obj.db.add((obj.resUri, self.pred, value2object(value)))
                 log.debug("adding: %s, %s, %s"%(obj.n3(),self.pred,value))
         obj.__dict__[self.name] = copy(newvals)
         
@@ -233,7 +235,7 @@ class rdflibList(rdflibMultiple):
         except KeyError:
             oldvals = []
             obj.__dict__[self.name] = oldvals
-        oldhead = obj.db.value(obj,self.pred)
+        oldhead = obj.db.value(obj.resUri,self.pred)
 ##          # This is a stack style where retrevial is oppisite of how it starts out
 ##         newnode = RDF.nil
 ##         for value in newvals:
@@ -254,7 +256,7 @@ class rdflibList(rdflibMultiple):
                 oldtail = newtail
                 newtail = BNode()
             obj.db.add((oldtail, RDF.rest, RDF.nil))
-        obj.db.set((obj, self.pred, newhead))
+        obj.db.set((obj.resUri, self.pred, newhead))
         if oldhead:
             rdfSubject(oldhead)._remove(db=obj.db)
         obj.__dict__[self.name] = copy(newvals)
@@ -277,7 +279,7 @@ class rdflibContainer(rdflibMultiple):
             return obj.__dict__[self.name]               
         #log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
         log.debug("Geting %s for %s"%(self.pred,obj.n3()))
-        base = obj.db.value(obj, self.pred)
+        base = obj.db.value(obj.resUri, self.pred)
         if not base:
             return []
         members=[]
@@ -298,10 +300,10 @@ class rdflibContainer(rdflibMultiple):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
         if not isinstance(newvals, list):
             raise AttributeError("to set a rdflibList you must pass in a list (it can be a list of one)")
-        seq = obj.db.value(obj, self.pred)
+        seq = obj.db.value(obj.resUri, self.pred)
         if not seq:
             seq = BNode()
-            obj.db.add((obj, self.pred, seq))
+            obj.db.add((obj.resUri, self.pred, seq))
             obj.db.add((seq, RDF.type, RDF.Seq))
         for s,p,o in obj.db.triples((seq, None, None)):
             if p.startswith(RDF['_']):
