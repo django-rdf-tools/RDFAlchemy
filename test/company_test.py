@@ -1,5 +1,5 @@
 from rdfalchemy import rdfSubject, rdflibSingle, rdflibMultiple
-from rdflib import ConjunctiveGraph, Namespace, Literal
+from rdflib import ConjunctiveGraph, Namespace, Literal, BNode, URIRef
 
 from StringIO import StringIO
 
@@ -89,6 +89,14 @@ def test_3():
     c = Company.get_by(symbol = 'IBM')
     assert not c.industry
     
+def test_creating():
+    c1=Company()
+    c2=Company(OV.A)
+    c3=Company('<http://owl.openvest.org/2005/10/Portfolio#A>')
+    c4=Company('_:xyz123')
+    #assert c2==c3
+    assert c2.resUri == c3.resUri
+    assert c4.resUri == BNode('xyz123')
 
 # write out the new n3 file to see the changes 
 c.db.serialize('example-out.n3',format='n3')

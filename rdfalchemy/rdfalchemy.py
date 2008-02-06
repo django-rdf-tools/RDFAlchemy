@@ -101,7 +101,7 @@ class rdfSubject(object):
         elif isinstance(resUri, rdfSubject):
             self.resUri=resUri.resUri 
             self.db=resUri.db
-        elif instance(resUri, (str, unicode)):
+        elif isinstance(resUri, (str, unicode)):
             if resUri[0]=="<" and resUri[-1]==">":
                 self.resUri=URIRef(resUri[1:-1])
             elif resUri.startswith("_:"):
