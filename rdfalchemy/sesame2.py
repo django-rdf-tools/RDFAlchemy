@@ -165,13 +165,16 @@ class SesameGraph(SPARQLGraph):
 
         Graph will get loaded into it's own context (sub graph). 
         Format defaults to xml (AKA rdf/xml). 
-        
-        :param publicID: *optional* the logical URI if it's different from the physical source URI. 
+
         :returns: Returns the context into which  the source was parsed.
+        
+        :param source: source file in the form of "http://....." or "~/dir/file.rdf"
+        :param publicID: *optional* the logical URI if it's different from the physical source URI. 
+        :param format: must be one of 'xml' or 'n3'
         :param method: must be one of
         
-          'POST' -- method adds data to a context
-          'PUT' -- method replaces data in a context
+          * 'POST' -- method adds data to a context
+          * 'PUT' -- method replaces data in a context
         """
         url = self.url+'/statements'
         if not source.startswith('http://'):

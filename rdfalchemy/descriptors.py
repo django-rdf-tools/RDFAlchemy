@@ -284,13 +284,13 @@ class rdflibContainer(rdflibMultiple):
             return []
         members=[]
         i=1        
-        first=db.value(base, RDF._1)
+        first=obj.db.value(base, RDF._1)
         if not first:
             raise AttributeError, ("expected node [%s] to be a list but it's not" % base.n3())
         while first:
             members.append(first)
             i += 1
-            first=db.value(base, RDF['_%d'%i])
+            first=obj.db.value(base, RDF['_%d'%i])
 
         val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v.toPython()) for v in members]
         obj.__dict__[self.name] = val
