@@ -31,6 +31,8 @@ def getList(sub, pred=None, db=None):
             db=sub.db
         else:
             db=rdfSubject.db
+    if isinstance(sub,rdfSubject):
+        sub = sub.resUri
     if pred:
         base = db.value(sub, pred, any=True)
     else:
@@ -145,8 +147,7 @@ class rdflibSingle(rdflibAbstract):
         obj.__dict__[self.name]= value
         o =value2object(value)
         obj.db.set((obj.resUri, self.pred, o))
-        #return None
-    
+        
    
 class rdflibMultiple(rdflibAbstract):
     '''This is a Discriptor    
@@ -159,7 +160,7 @@ class rdflibMultiple(rdflibAbstract):
             return self
         if self.name in obj.__dict__:
             return obj.__dict__[self.name]
-        val=[o for o in obj.db.objects(obj, self.pred)]
+        val=[o for o in obj.db.objects(obj.resUri, self.pred)]
         # check to see if this is a Container or Collection
         # if so, return collection as a list
         if len(val) == 1 \
@@ -209,7 +210,7 @@ class rdflibList(rdflibMultiple):
             return obj.__dict__[self.name]       
         #log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
         log.debug("Geting %s for %s"%(self.pred,obj.n3()))
-        base = obj.db.value(obj,self.pred)
+        base = obj.db.value(obj.resUri,self.pred)
         if not base or base==RDF.nil:
             return []
         members=[]
