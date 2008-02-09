@@ -1,4 +1,4 @@
-from rdfalchemy import rdfSubject, rdflibSingle, rdflibMultiple
+from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple
 from rdflib import ConjunctiveGraph, Namespace, Literal, BNode, URIRef
 
 from StringIO import StringIO
@@ -39,10 +39,10 @@ rdfSubject.db.parse(StringIO(n3data), format='n3')
 
 class Company(rdfSubject):
     rdf_type = OV.Company
-    symbol = rdflibSingle(OV.symbol,'symbol')
-    cik = rdflibSingle(OV.secCik,'cik')
-    companyName = rdflibSingle(OV.companyName)
-    address = rdflibSingle(VCARD.adr)
+    symbol = rdfSingle(OV.symbol,'symbol')
+    cik = rdfSingle(OV.secCik,'cik')
+    companyName = rdfSingle(OV.companyName)
+    address = rdfSingle(VCARD.adr)
 
 
 # Above here would typically go in a model.py file and be imported
@@ -68,13 +68,13 @@ print ''
 
 def test_2():
     ## Add a descriptor on the fly
-    Company.stockDescription = rdflibSingle(OV.stockDescription,'stockDescription')
+    Company.stockDescription = rdfSingle(OV.stockDescription,'stockDescription')
 
     assert  c.companyName == c[OV.companyName]
     
     
 ## add another descriptor on the fly
-Company.industry = rdflibSingle(OV.yindustry,'industry')
+Company.industry = rdfSingle(OV.yindustry,'industry')
 
 ## add an attribute (from the database)
 c = Company.get_by(symbol = 'JAVA')

@@ -1,4 +1,4 @@
-from rdfalchemy import rdfSubject, rdflibSingle, rdflibMultiple
+from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple
 from rdflib import Namespace
 
 DOAP=Namespace("http://usefulinc.com/ns/doap#")
@@ -7,13 +7,13 @@ FOAF=Namespace("http://xmlns.com/foaf/0.1/" )
 
 class Project(rdfSubject):
     rdf_type = DOAP.Project
-    name = rdflibSingle(DOAP.name)
-    created = rdflibSingle(DOAP.created)
-    homepage = rdflibSingle(DOAP.homepage)
-    shortdesc = rdflibMultiple(DOAP.shortdesc)
-    releases = rdflibMultiple(DOAP.release)
-    language = rdflibSingle(DOAP['programming-language']) # the hyphen means we can't use DOAP.programming-language
-    maintainer = rdflibSingle(DOAP.maintainer,range_type=FOAF.Person)
+    name = rdfSingle(DOAP.name)
+    created = rdfSingle(DOAP.created)
+    homepage = rdfSingle(DOAP.homepage)
+    shortdesc = rdfMultiple(DOAP.shortdesc)
+    releases = rdfMultiple(DOAP.release)
+    language = rdfSingle(DOAP['programming-language']) # the hyphen means we can't use DOAP.programming-language
+    maintainer = rdfSingle(DOAP.maintainer,range_type=FOAF.Person)
 
 if __name__ == '__main__':
     from rdflib import ConjunctiveGraph

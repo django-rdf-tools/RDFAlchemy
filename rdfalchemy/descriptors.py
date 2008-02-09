@@ -7,17 +7,17 @@ Created by Philip Cooper on 2008-02-03.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
-from rdflib import Literal, URIRef, BNode, Namespace
+from rdflib import URIRef, BNode, Namespace
 from rdflib.Identifier import Identifier 
-from rdfalchemy import rdfSubject
-from  copy import copy
+from rdfalchemy import rdfSubject, Literal 
+from copy import copy
 
 #from rdfalchemy import rdfSubject
 import logging
 ##console = logging.StreamHandler()
 ##formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 ##console.setFormatter(formatter)
-log=logging.getLogger('rdfalchemy')
+log=logging.getLogger(__name__)
 
 RDF  = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 
@@ -79,7 +79,7 @@ def value2object(value):
 # each one will map an attribute of a class (derived from rdfObjet) to a predicate 
 ##################################################################################
 
-class rdflibAbstract(object):
+class rdfAbstract(object):
     """Abstract base class for descriptors
     Descriptors are to map class instance variables to predicates
     optional cacheName is where to store items
@@ -120,14 +120,14 @@ class rdflibAbstract(object):
 
 
                     
-class rdflibSingle(rdflibAbstract):
+class rdfSingle(rdfAbstract):
     '''This is a Discriptor
     Takes a the URI of the predicate at initialization
     Expects to return a single item
     on Assignment will set that value to the 
     ONLY triple with that subject,predicate pair'''
     def __init__(self, pred, cacheName=None, range_type=None):
-        super(rdflibSingle, self).__init__(pred, cacheName, range_type)
+        super(rdfSingle, self).__init__(pred, cacheName, range_type)
         
     def __get__(self, obj, cls):
         if obj is None:
@@ -149,11 +149,11 @@ class rdflibSingle(rdflibAbstract):
         obj.db.set((obj.resUri, self.pred, o))
         
    
-class rdflibMultiple(rdflibAbstract):
+class rdfMultiple(rdfAbstract):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)'''
     def __init__(self, pred, cacheName=None, range_type=None):
-        super(rdflibMultiple, self).__init__(pred, cacheName, range_type)
+        super(rdfMultiple, self).__init__(pred, cacheName, range_type)
         
     def __get__(self, obj, cls):
         if obj is None:
@@ -179,7 +179,7 @@ class rdflibMultiple(rdflibAbstract):
     def __set__(self, obj, newvals):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
         if not isinstance(newvals, list):
-            raise AttributeError("to set a rdflibMulti you must pass in a list (it can be a list of one)")
+            raise AttributeError("to set a rdfMulti you must pass in a list (it can be a list of one)")
         try:
             oldvals = obj.__dict__[self.name]
         except KeyError:
@@ -196,12 +196,12 @@ class rdflibMultiple(rdflibAbstract):
         obj.__dict__[self.name] = copy(newvals)
         
 
-class rdflibList(rdflibMultiple):
+class rdfList(rdfMultiple):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)
        `__set__` will set the predicate as a RDF List'''
     def __init__(self, pred, range_type=None):
-        super(rdflibMultiple, self).__init__(pred, range_type)
+        super(rdfMultiple, self).__init__(pred, range_type)
         
     def __get__(self, obj, cls):
         if obj is None:
@@ -230,7 +230,7 @@ class rdflibList(rdflibMultiple):
     def __set__(self, obj, newvals):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
         if not isinstance(newvals, list):
-            raise AttributeError("to set a rdflibList you must pass in a list (it can be a list of one)")
+            raise AttributeError("to set a rdfList you must pass in a list (it can be a list of one)")
         try:
             oldvals = obj.__dict__[self.name]
         except KeyError:
@@ -264,12 +264,12 @@ class rdflibList(rdflibMultiple):
 
 
         
-class rdflibContainer(rdflibMultiple):
+class rdfContainer(rdfMultiple):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)
        `__set__` will set the predicate as a RDF Container type (defaults to rdf:Seq)'''
     def __init__(self, pred,  range_type=None, container_type="http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq"):
-        super(rdflibMultiple, self).__init__(pred,  range_type)
+        super(rdfMultiple, self).__init__(pred,  range_type)
         self.container_type = container_type
         
         
@@ -300,7 +300,7 @@ class rdflibContainer(rdflibMultiple):
     def __set__(self, obj, newvals):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
         if not isinstance(newvals, list):
-            raise AttributeError("to set a rdflibList you must pass in a list (it can be a list of one)")
+            raise AttributeError("to set a rdfList you must pass in a list (it can be a list of one)")
         seq = obj.db.value(obj.resUri, self.pred)
         if not seq:
             seq = BNode()

@@ -19,9 +19,9 @@ def test_start():
 
 
 
-Person.m=rdflibMultiple(FOAF.multi)
-Person.l=rdflibList(FOAF.list)
-Person.c=rdflibContainer(FOAF.seq)
+Person.m=rdfMultiple(FOAF.multi)
+Person.l=rdfList(FOAF.list)
+Person.c=rdfContainer(FOAF.seq)
 
 def test_multi():
     p=Person.ClassInstances().next()

@@ -1,2 +1,4 @@
-from rdfalchemy import *
-from descriptors import *
+from rdflib import Namespace
+from rdfalchemy.Literal import Literal
+from rdfalchemy.rdfSubject import rdfSubject
+from rdfalchemy.descriptors import *

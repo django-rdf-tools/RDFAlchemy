@@ -1,10 +1,11 @@
 from rdfalchemy import *
+from rdfalchemy.orm import mapper
 from rdfalchemy.samples.doap import *
 from rdfalchemy.samples.foaf import *
 from rdflib import ConjunctiveGraph
 
 import logging
-log = logging.getLogger('rdfalchemy')
+log = logging.getLogger()
 if not log.handlers:
     log.addHandler(logging.StreamHandler())
 #log.setLevel(10)
@@ -14,7 +15,7 @@ Person.db=ConjunctiveGraph()
 
 
 def test_addBNodeKnowsL():
-    Person.knows = rdflibList(FOAF.knowsL, range_type=FOAF.Person)        
+    Person.knows = rdfList(FOAF.knowsL, range_type=FOAF.Person)        
     p1=Person(first="PhilipL")
     p2=Person(last="Cooper" , first="Ben")
     p3=Person(last="Cooper" , first="Matt")
@@ -25,7 +26,8 @@ def test_addBNodeKnowsL():
     del p1
     
 def test_addBNodeKnowsC():
-    Person.knows = rdflibContainer(FOAF.knowsC, range_type=FOAF.Person)        
+    Person.knows = rdfContainer(FOAF.knowsC, range_type=FOAF.Person)       
+    mapper() 
     p1=Person(first="PhilipC")
     p2=Person(last="Cooper" , first="Ben")
     p3=Person(last="Cooper" , first="Matt")
@@ -36,7 +38,8 @@ def test_addBNodeKnowsC():
     del p1
     
 def test_addBNodeKnowsM():
-    Person.knows = rdflibMultiple(FOAF.knowsM, range_type=FOAF.Person)        
+    Person.knows = rdfMultiple(FOAF.knowsM, range_type=FOAF.Person)        
+    mapper()
     p1=Person(first="PhilipM")
     p2=Person(last="Cooper" , first="Ben")
     p3=Person(last="Cooper" , first="Matt")

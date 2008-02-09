@@ -31,9 +31,10 @@ SOFTWARE.
 __version__ = "0.2dev"
 
 from rdflib import ConjunctiveGraph
-from rdflib import Literal, BNode, Namespace, URIRef
+from rdflib import BNode, Namespace, URIRef
 from rdflib.Identifier import Identifier 
 from rdflib.exceptions import *
+from rdfalchemy.Literal import Literal
 import re
 
 try:
@@ -45,7 +46,7 @@ import logging
 ##console = logging.StreamHandler()
 ##formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 ##console.setFormatter(formatter)
-log=logging.getLogger('rdfalchemy')
+log=logging.getLogger(__name__)
 ##log.setLevel(logging.DEBUG)
 ##log.addHandler(console)
 
@@ -146,9 +147,9 @@ class rdfSubject(object):
         
     #short term hack.  Need to go to a sqlalchemy 0.4 style query method
     # obj.query.get_by should map to obj.get_by  ..same for fetch_by
-    @property
-    def query(self):
-        return self    
+    @classmethod
+    def query(obj):
+        return obj    
 
     @classmethod
     def get_by(cls, **kwargs):

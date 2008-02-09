@@ -10,18 +10,18 @@ edgarns = Namespace('http://www.sec.gov/Archives/edgar')
 
 class Company(rdfSubject):
     rdf_type = ov.Company
-    symbol = rdflibSingle(ov.symbol,)
-    cik = rdflibSingle(ov.secCik,'cik')
-    companyName = rdflibSingle(ov.companyName,'companyName')
-    stockDescription = rdflibSingle(ov.stockDescription,'stockDescription')
-    stock = rdflibMultiple(ov.hasIssue)
+    symbol = rdfSingle(ov.symbol,)
+    cik = rdfSingle(ov.secCik,'cik')
+    companyName = rdfSingle(ov.companyName,'companyName')
+    stockDescription = rdfSingle(ov.stockDescription,'stockDescription')
+    stock = rdfMultiple(ov.hasIssue)
         
                                                                                                                                         
 
 class EdgarFiling(rdfSubject):
     rdf_type = edgarns.xbrlFiling
-    accessionNumber = rdflibSingle(edgarns.accessionNumber)
-    companyName = rdflibSingle(edgarns.companyName)
-    filingDate = rdflibSingle(edgarns.filingDate)
-    formType = rdflibSingle(edgarns.formType)
+    accessionNumber = rdfSingle(edgarns.accessionNumber)
+    companyName = rdfSingle(edgarns.companyName)
+    filingDate = rdfSingle(edgarns.filingDate)
+    formType = rdfSingle(edgarns.formType)
                                                                                                                                                                                                                                                                                                                                                                    

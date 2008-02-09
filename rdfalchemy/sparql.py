@@ -9,7 +9,7 @@ from xml.dom import pulldom
 import simplejson
 import logging
 
-log=logging.getLogger('rdfAlchemy')
+log=logging.getLogger(__name__)
 
 class DumpSink(object):
    def __init__(self):

@@ -9,7 +9,7 @@ from urllib import urlencode
 import os, re, logging
 import simplejson
 
-log=logging.getLogger('rdfAlchemy')
+log=logging.getLogger(__name__)
 
 RDF  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 RDFS =Namespace("http://www.w3.org/2000/01/rdf-schema#")

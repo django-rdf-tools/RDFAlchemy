@@ -7,11 +7,11 @@ Created by Philip Cooper on 2007-11-23.
 Copyright (c) 2007 Openvest. All rights reserved.
 """
 
-from rdfalchemy import rdfSubject
-from descriptors import rdflibAbstract
+from rdfalchemy.rdfSubject import rdfSubject
+from rdfalchemy.descriptors import rdfAbstract
 
 import logging
-log=logging.getLogger('rdfAlchemy')
+log=logging.getLogger(__name__)
 
 def allsub(cl, beenthere = set([])):
     "return all subclasses of the given class"
@@ -34,7 +34,7 @@ def mapper(*classes):
     class_dict = dict([(str(cl.rdf_type), cl) for cl in classes])
     for cl in classes:  # for each class
         for v in cl.__dict__.values():  # for each desciptor
-            if isinstance(v,rdflibAbstract) and v.range_type:  #if its a descriptor with a range
+            if isinstance(v,rdfAbstract) and v.range_type:  #if its a descriptor with a range
                 try:
                     v._mappedClass = class_dict[str(v.range_type)] 
                 except KeyError:
