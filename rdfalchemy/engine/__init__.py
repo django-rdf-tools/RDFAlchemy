@@ -3,7 +3,7 @@ import os
 import re
 import urllib
 
-def create_engine(url=''):
+def create_engine(url='', create=False):
     """Takes a url string and returns an open
     rdflib ConjunctiveGraph
     e.g.:
@@ -29,14 +29,16 @@ def create_engine(url=''):
     elif url.lower().startswith('sleepycat://'):
         openstr = os.path.abspath(os.path.expanduser(url[12:]))
         db = ConjunctiveGraph('Sleepycat')
-        db.open(openstr)
+        db.open(openstr) #,create=create) 
     elif url.lower().startswith('zodb://'):
         import ZODB
         import transaction
         db = ConjunctiveGraph('ZODB')
         if url.endswith('.fs'):
             from ZODB.FileStorage import FileStorage
-            openstr = os.path.abspath(os.path.expanduser(url[12:]))
+            openstr = os.path.abspath(os.path.expanduser(url[7:]))
+            if not os.path.exists(openstr) and not create:
+                raise "File not found: %s"%openstr
             fs=FileStorage(openstr)
         else:
             from ZEO.ClientStorage import ClientStorage
@@ -49,6 +51,8 @@ def create_engine(url=''):
         #get the root
         root=conn.root()
         # get the Conjunctive Graph
+        if 'rdflib' not in root and create:
+            root['rdflib'] = ConjunctiveGraph()
         db=root['rdflib']
     else:
         raise "Could not parse  string '%s'" % url

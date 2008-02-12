@@ -1,6 +1,11 @@
 from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple
 from rdflib import ConjunctiveGraph, Namespace, Literal
 
+import logging
+log = logging.getLogger()
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.DEBUG)
+
 OV = Namespace('http://owl.openvest.org/2005/10/Portfolio#')
 VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
 
@@ -41,8 +46,22 @@ print " same as"
 print "%s: %s"%(c[OV.companyName],c[OV.stockDescription])
 
 print "## CHECK to see if multiple reads cause database reads"
-print "%s: %s"%(c.companyName,c.stockDescription)
-print "%s: %s"%(c.companyName,c.stockDescription)
+print "   you should see no non-blank lines between here\n"
+s = "%s: %s"%(c.companyName,c.stockDescription)
+s = "%s: %s"%(c.companyName,c.stockDescription)
+print "\n   and here"
+
+c = Company.get_by(symbol = 'IBM')
+print "   and exactly the same number of non-blank lines between here\n"
+s = "%s: %s"%(c.companyName,c.stockDescription)
+print "\n   and here"
+
+c = Company.get_by(symbol = 'IBM')
+print "   and  here\n"
+s = "%s: %s"%(c.companyName,c.stockDescription)
+s = "%s: %s"%(c.companyName,c.stockDescription)
+s = "%s: %s"%(c.companyName,c.stockDescription)
+print "\n   and here"
 
 ## add another descriptor on the fly
 Company.industry = rdfSingle(OV.yindustry,'industry')

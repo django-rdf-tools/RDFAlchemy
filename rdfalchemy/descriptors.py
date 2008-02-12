@@ -136,7 +136,7 @@ class rdfSingle(rdfAbstract):
             return obj.__dict__[self.name]
         log.debug("Geting with descriptor %s for %s"%(self.pred,obj.n3()))
         val=obj.__getitem__(self.pred)        
-        if isinstance(val, rdfSubject) or isinstance(val, BNode) or isinstance(val,URIRef):
+        if isinstance(val, (rdfSubject, BNode, URIRef)):
             val = self.range_class(val)
         obj.__dict__[self.name]= val
         return val
@@ -166,7 +166,7 @@ class rdfMultiple(rdfAbstract):
         if len(val) == 1 \
            and (obj.db.value(o,RDF.first) or obj.db.value(o,RDF._1)): 
                   val=getList(obj, self.pred)
-        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v.toPython()) for v in val]
+        val=[(isinstance(v, (BNode,URIRef)) and self.range_class(v) or v.toPython()) for v in val]
         # ?? FIXME why does the debug statement show up twice??
         #setattr(obj, self.name, val) changed to next line 01/31/08  was calling twice
         obj.__dict__[self.name]= val
