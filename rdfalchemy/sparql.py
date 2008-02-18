@@ -36,15 +36,15 @@ class SPARQLGraph(object):
     def construct(self, strOrTriple, initBindings={}, initNs={}):
         """
         Executes a SPARQL Construct
-        strOrTriple - can be either:
+        :param strOrTriple: can be either
         
           * a string in which case it it considered a CONSTRUCT query
           * a triple in which case it acts as the rdflib `triples((s,p,o))`
         
-        initBindings - A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
-        initNS - A mapping from a namespace prefix to a namespace
+        :param initBindings:  A mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        :param initNs:  A mapping from a namespace prefix to a namespace
         
-        returns an instance of rdflib.ConjuctiveGraph('IOMemory')
+        :returns: an instance of rdflib.ConjuctiveGraph('IOMemory')
         """
         if isinstance(strOrTriple, str):
             query = strOrTriple
@@ -284,10 +284,12 @@ class SPARQLGraph(object):
                 idx = var_names.index(node.attributes['name'].value)
             elif event == pulldom.START_ELEMENT and node.tagName == 'uri':
                 events.expandNode(node)
-                bindings[idx] = URIRef(node.firstChild.data)
+                txt = ''.join([n.nodeValue for n in node.childNodes])
+                bindings[idx] = URIRef(txt)
             elif event == pulldom.START_ELEMENT and node.tagName == 'bnode':
                 events.expandNode(node)
-                bindings[idx] = BNode(node.firstChild.data)
+                txt = ''.join([n.nodeValue for n in node.childNodes])
+                bindings[idx] = BNode(txt)
             elif event == pulldom.START_ELEMENT and node.tagName == 'literal':
                 events.expandNode(node)
                 # guard against an empty string return

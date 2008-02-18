@@ -7,15 +7,14 @@ from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 from struct import unpack
 
-import os, re, logging
+from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
+
+import os
 import simplejson
+import logging
 
 log=logging.getLogger(__name__)
 
-RDF  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-RDFS =Namespace("http://www.w3.org/2000/01/rdf-schema#")
-
-re_ns_n = re.compile('(.*[/#])(.*)')
 
 class DumpSink(object):
    def __init__(self):
@@ -312,9 +311,9 @@ class _BRTRSPARQLHandler(object):
                 errType = ord(self.stream.read(1))
                 errStr = self.readstr()
                 if errType == 1:
-                    raise MalformedQuery(errStr)
+                    raise MalformedQueryError(errStr)
                 elif errType == 2:
-                    raise MalformedQuery(errStr)
+                    raise QueryEvaluationError(errStr)
                 else:
                     raise errStr
             elif rtype == 127: # EOF
