@@ -5,6 +5,7 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
+from struct import unpack
 
 import os, re, logging
 import simplejson
@@ -158,6 +159,43 @@ class SesameGraph(SPARQLGraph):
             if uri.startswith(n):
                 return "%s:%s"%(p,uri[len(n):])
         return uri
+        
+    def query(self, strOrQuery, initBindings={}, initNs={}, resultMethod="brtr",processor="sparql"):
+        """
+        Executes a SPARQL query against this Graph
+        
+        :param strOrQuery: Is either a string consisting of the SPARQL query 
+        :param initBindings: *optional* mapping from a Variable to an RDFLib term (used as initial bindings for SPARQL query)
+        :param initNs: optional mapping from a namespace prefix to a namespace
+        :param resultMethod: results query requested (must be 'xml', 'json' 'brtr') 
+         xml streams over the result set and json must read the entire set  to succeed 
+        :param processor: The kind of RDF query (must be 'sparql' or 'serql')
+        """
+        query = strOrQuery
+        if initNs:
+	    prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
+	    query = prefixes + query
+        log.debug("Query: %s"%(query))
+        query = dict(query=query,queryLn=processor)
+        url = self.url+"?"+urlencode(query)
+        req = Request(url)
+        if resultMethod == 'brtr':
+            return self._sparql_results_brtr(req)
+        elif resultMethod == 'json':
+            return self._sparql_results_json(req)
+        elif resultMethod == 'xml':
+            return self._sparql_results_xml(req)
+        else:
+            raise "Unknown resultMethod: %s"%(resultMethod)
+            
+    def _sparql_results_brtr(self,req):
+        """_sparql_results_brtr takes a Request
+         returns an interator over the results"""
+        var_names=[]
+        bindings=[] 
+        req.add_header('Accept','application/x-binary-rdf-results-table')
+        log.debug("Request: %s" % req.get_full_url())
+        return _BRTRSPARQLHandler(urlopen(req))
 
     def parse(self, source, publicID=None, format="xml", method='POST'):
         """
@@ -205,7 +243,83 @@ class SesameGraph(SPARQLGraph):
                 log.error(e) 
         return result
 
-
     def load(self, source, publicID=None, format="xml"):
         self.parse(source, publicID, format)
 
+class _BRTRSPARQLHandler(object):
+    """Handler for the sesame binary table format BRTR_
+    
+    .. _BRTR: http://www.openrdf.org/doc/sesame/api/org/openrdf/sesame/query/BinaryTableResultConstants.html
+    """
+
+    def __init__(self, stream):
+        self.stream = stream
+        if self.stream.read(4) <> 'BRTR': raise ParseError("First 4 bytes in should be BRTR")
+        self.ver = self.readint() # ver of protocol
+        self.ncols = self.readint()
+        self.keys = tuple(self.readstr() for x in range(self.ncols))
+        self.values = [None,]*self.ncols
+        self.ns = {}
+        
+    def readint(self):
+        return  unpack('>i',self.stream.read(4))[0]
+    
+    def readstr(self):
+        l = self.readint()
+        return self.stream.read(l).decode("utf-8")
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        for i in range(self.ncols):
+            val = self.getval()
+            if val == 1: # REPEAT
+                continue
+            self.values[i] = val             
+        return tuple(self.values)
+
+    def getval(self):
+        while True:
+            rtype = ord(self.stream.read(1))
+            if rtype == 0: #NULL
+                return None
+            elif rtype == 1: #REPEAT
+                return 1
+            elif rtype == 2: #NAMESPACE     
+                nsid = self.readint()
+                url = self.readstr()
+                self.ns[nsid] = url
+            elif rtype == 3: # QNAME
+                nsid = self.readint()
+                localname = self.readstr()
+                return URIRef(self.ns[nsid] + localname)
+            elif rtype == 4: # URI
+                return URIRef(self.readstr())
+            elif rtype == 5: # BNODE
+                return BNode(self.readstr())
+            elif rtype == 6: # PLAIN LITERAL
+                return Literal(self.readstr())
+            elif rtype == 7: # LANGUAGE LITERAL
+                lit = self.readstr()
+                lang= self.readstr()
+                return Literal(lit,lang=lang)
+            elif rtype == 8: # DATATYPE LITERAL
+                lit = self.readstr()
+                datatype = self.getval()
+                return Literal(lit,datatype=datatype)                
+            elif rtype == 126: # ERROR
+                errType = ord(self.stream.read(1))
+                errStr = self.readstr()
+                if errType == 1:
+                    raise MalformedQuery(errStr)
+                elif errType == 2:
+                    raise MalformedQuery(errStr)
+                else:
+                    raise errStr
+            elif rtype == 127: # EOF
+                raise StopIteration()
+            else:
+                raise ParseError("Undefined record type: %s" % rtype)
+                
+    

@@ -291,10 +291,10 @@ class SPARQLGraph(object):
             elif event == pulldom.START_ELEMENT and node.tagName == 'literal':
                 events.expandNode(node)
                 # guard against an empty string return
-                txt = node.firstChild and node.firstChild.data
+                txt = ''.join([n.nodeValue for n in node.childNodes])
                 bindings[idx] = Literal(txt,
                                         datatype = node.getAttribute('datatype'), 
-                                        lang= node.getAttribute('xml:lang'))
+                                        lang= node.getAttribute('xml:lang') or None) # or None is to prevent empty str
             elif event == pulldom.END_ELEMENT and node.tagName == 'result':
                     yield tuple(bindings)
 

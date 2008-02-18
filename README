@@ -1,0 +1,7 @@
+RDFAlchemy is an abstraction layer, allowing python
+developers to use familiar *dot notation* to access and update an rdf triplestore.
+    
+      * RDFAlchemy is an **ORM** (Object Rdf Mapper) for graph data as:
+      * SQLAlchemy is an **ORM** (Object Relational Mapper) for relalational databases
+      
+See the the homepage at http://www.openvest.com/trac/wiki/RDFAlchemy for details
