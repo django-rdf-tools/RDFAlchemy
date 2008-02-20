@@ -28,17 +28,11 @@ log=logging.getLogger(__name__)
 ##log.addHandler(console)
 
 RDF  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-RDFS =Namespace("http://www.w3.org/2000/01/rdf-schema#")
-OWL  =Namespace("http://www.w3.org/2002/07/owl#")
 
 re_ns_n = re.compile('(.*[/#])(.*)')
-
     
-# Look into caching as in:
-# http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/276643
 # Note: Non data descriptors (get only) lookup in obj.__dict__ first
 #       Data descriptors (get and set) use the __get__ first
-
 
 ##################################################################################
 # define our Base Class for all "subjects" in python 
@@ -214,7 +208,7 @@ class rdfSubject(object):
         val=self.db.value(self.resUri, pred)
         if isinstance(val,Literal):
             val =  val.toPython() 
-        elif isinstance(val, BNode) or isinstance(val,URIRef): 
+        elif isinstance(val, (BNode,URIRef)): 
             val=rdfSubject(val) 
         return val
         

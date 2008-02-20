@@ -16,7 +16,7 @@ setup(
     install_requires=["rdflib==2.4.0"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
-    keywords = "rdf",
+    keywords = "RDF SPARQL",
     platforms = ["any"],
     classifiers = ["Programming Language :: Python",
                    "License :: OSI Approved :: BSD License",

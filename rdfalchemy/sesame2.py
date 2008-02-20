@@ -45,6 +45,7 @@ class SesameGraph(SPARQLGraph):
             pass
         req = Request(self.url+'/namespaces')
         req.add_header('Accept','application/sparql-results+json')
+        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))        
         ret=simplejson.load(urlopen(req))
         bindings=ret['results']['bindings']
         self._namespaces = dict([(b['prefix']['value'],b['namespace']['value']) for b in bindings])

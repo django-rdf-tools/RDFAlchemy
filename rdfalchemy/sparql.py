@@ -4,12 +4,39 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request
 from urllib import urlencode
-from xml.dom import pulldom
 
 import simplejson
 import logging
 
 log=logging.getLogger(__name__)
+
+# use a fast ElementTree
+# TODO: test these each for iterparse compatability and relative speed
+try:
+    import cElementTree as ET # effbot's C module
+except ImportError:
+    try:
+        import xml.etree.ElementTree as ET # in python >=2.5
+    except ImportError:
+        try:
+            import lxml.etree as ET # ElementTree API using libxml2
+        except ImportError:
+            import elementtree.ElementTree as ET # effbot's pure Python module
+log.debug('Using ElementTree: %s' % ET)
+
+# some constants for parsing the xml tree
+_S_NS    = "{http://www.w3.org/2005/sparql-results#}"
+_VARIABLE= _S_NS+"variable"
+_BNODE   = _S_NS+"bnode"
+_URI     = _S_NS+"uri"
+_BINDING = _S_NS+"binding"
+_LITERAL = _S_NS+"literal"
+_HEAD    = _S_NS+"head"
+_RESULT  = _S_NS+"result"
+_X_NS = "{http://www.w3.org/XML/1998/namespace}"
+_LANG = _X_NS+"lang"
+
+
 
 class DumpSink(object):
    def __init__(self):
@@ -61,6 +88,7 @@ class SPARQLGraph(object):
         req = Request(url)
         log.debug("Request: %s" % req.get_full_url())
         req.add_header('Accept','application/rdf+xml')
+        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))        
         subgraph = ConjunctiveGraph('IOMemory')
         subgraph.parse(urlopen(req))
         return subgraph
@@ -141,8 +169,7 @@ class SPARQLGraph(object):
         """
         retval = default
 
-        if (subject is None and predicate is None) or \
-                (subject is None and object is None) or \
+        if (subject is None and (predicate is None or object is None)) or \
                 (predicate is None and object is None):
             return None
         
@@ -243,6 +270,7 @@ class SPARQLGraph(object):
          it consumes the entire result set before
          yielding the first result"""
         req.add_header('Accept','application/sparql-results+json')
+        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
         ret=simplejson.load(urlopen(req))
         var_names = ret['head']['vars'] 
         bindings = ret['results']['bindings']
@@ -261,6 +289,7 @@ class SPARQLGraph(object):
                    raise AttributeError("Binding type error: %s"%(type))
             yield tuple([b.get(var) for var in var_names])
             
+
     def _sparql_results_xml(self,req):
         """_sparql_results_xml takes a Request
          returns an interator over the results"""
@@ -268,36 +297,32 @@ class SPARQLGraph(object):
         var_names=[]
         bindings=[] 
         req.add_header('Accept','application/sparql-results+xml')
-        log.debug("Request: %s" % req.get_full_url())
-        events = pulldom.parse(urlopen(req))
+        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
+        events = iter(ET.iterparse(urlopen(req),events=('start','end')))
         # lets gather up the variable names in head
         for (event, node) in events:
-            if event == pulldom.START_ELEMENT and  node.tagName == 'variable':
-                var_names.append(node.attributes['name'].value)
-            elif event == pulldom.END_ELEMENT and node.tagName == 'head':
+            if event == 'start' and node.tag == _VARIABLE:
+                var_names.append(node.get('name'))
+            elif event == 'end' and node.tag == _HEAD:
                 break
         # now let's yield each result as we parse them
         for (event, node) in events:
-            if event == pulldom.START_ELEMENT and  node.tagName == 'result':
-                bindings = [None,] *  len(var_names)
-            elif event == pulldom.START_ELEMENT and node.tagName == 'binding':
-                idx = var_names.index(node.attributes['name'].value)
-            elif event == pulldom.START_ELEMENT and node.tagName == 'uri':
-                events.expandNode(node)
-                txt = ''.join([n.nodeValue for n in node.childNodes])
-                bindings[idx] = URIRef(txt)
-            elif event == pulldom.START_ELEMENT and node.tagName == 'bnode':
-                events.expandNode(node)
-                txt = ''.join([n.nodeValue for n in node.childNodes])
-                bindings[idx] = BNode(txt)
-            elif event == pulldom.START_ELEMENT and node.tagName == 'literal':
-                events.expandNode(node)
-                # guard against an empty string return
-                txt = ''.join([n.nodeValue for n in node.childNodes])
-                bindings[idx] = Literal(txt,
-                                        datatype = node.getAttribute('datatype'), 
-                                        lang= node.getAttribute('xml:lang') or None) # or None is to prevent empty str
-            elif event == pulldom.END_ELEMENT and node.tagName == 'result':
+            if event == 'start':
+                if node.tag == _RESULT:
+                    bindings = [None,] *  len(var_names)
+                elif node.tag == _BINDING:
+                    idx = var_names.index(node.get('name'))
+            elif event == 'end':
+                if node.tag == _URI:
+                    bindings[idx] = URIRef(node.text)
+                elif node.tag == _BNODE:
+                    bindings[idx] = BNode(node.text)
+                elif node.tag == _LITERAL:
+                    bindings[idx] = Literal(node.text or '',
+                                        datatype = node.get('datatype'), 
+                                        lang= node.get(_LANG))
+                elif node.tag == _RESULT:
+                    node.clear()
                     yield tuple(bindings)
 
 
@@ -329,6 +354,7 @@ class SPARQLGraph(object):
         url = self.url+"?"+urlencode(query)
         req = Request(url)
         req.add_header('Accept','application/rdf+xml')
+        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
         subgraph = ConjunctiveGraph()
         subgraph.parse(urlopen(req))
         return subgraph
