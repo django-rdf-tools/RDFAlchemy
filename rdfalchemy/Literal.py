@@ -13,6 +13,7 @@ import re
 
 XSD = Namespace(u'http://www.w3.org/2001/XMLSchema#')
 
+################################################################################
 ## Let's make toPython return a Decimal if an XSD.decimal in in the triplestore
 try:
     from decimal import Decimal
@@ -21,43 +22,44 @@ try:
 except:
     pass
     
+################################################################################
+## Default behavior returns untyped literals as literals
+## this brings untyped literals back as unicode strings
+bindLiteral(None,unicode)
 
-
+################################################################################
+## Default behavior returns string literals as literals
+## this brings  string literals back as unicode strings
+bindLiteral(XSD.string,unicode)
+        
+################################################################################
 ## Let's make toPython return a datetime if the literal has fractional seconds
-## Note: dateparser adapeted from http://www.mnot.net/python/isodate.py
-## modified to handle fractional seconds beyond tenths and to allow
-## pseudo iso i.e. "2001-12-15 22:43:46" vs "2001-12-15T22:43:46"
+## Note: dateparser adapted from http://www.mnot.net/python/isodate.py
+## modified to: handle fractional seconds beyond tenths 
+##              and to allow pseudo iso i.e. "2001-12-15 22:43:46" 
+##                                        vs "2001-12-15T22:43:46"
 import datetime
 
 date_parser = re.compile(r"""^
-    (?P<year>\d{4,4})
-    (?:
-        -
+    (?P<year>\d{4})
+    (?:-
         (?P<month>\d{1,2})
-        (?:
-            -
+        (?:-
             (?P<day>\d{1,2})
-            (?:
-                [T ]
+            (?:[T ]
                 (?P<hour>\d{1,2})
                 :
                 (?P<minute>\d{1,2})
-                (?:
-                    :
+                (?::
                     (?P<second>\d{1,2})
-                    (?:
-                        (?P<dec_second>\.\d+)?
-                    )?
+                    (?P<dec_second>\.\d+)?
                 )?                    
-                (?:
-                    Z
-                    |
-                    (?:
+                (?:Z|(?:
                         (?P<tz_sign>[+-])
                         (?P<tz_hour>\d{1,2})
                         :
                         (?P<tz_min>\d{2,2})
-                    )
+                     )
                 )?
             )?
         )?
