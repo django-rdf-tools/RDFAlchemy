@@ -5,6 +5,7 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 from urllib2 import urlopen, Request
 from urllib import urlencode
 
+import re
 import simplejson
 import logging
 
@@ -36,7 +37,7 @@ _RESULT  = _S_NS+"result"
 _X_NS = "{http://www.w3.org/XML/1998/namespace}"
 _LANG = _X_NS+"lang"
 
-
+re_qvars = re.compile('(?<=[\]\.\;\{\s])\?([a-zA-Z][a-zA-Z0-9]*)')
 
 class DumpSink(object):
    def __init__(self):
@@ -230,12 +231,11 @@ class SPARQLGraph(object):
             list = self.value(list, RDF.rest)
            
     def qname(self,uri):
-        """turn uri into a qname given self.namespaces"""
-        for p,n in db.namespaces.items():
-            if uri.startswith(n):
-                return "%s:%s"%(p,uri[len(n):])
-        return uri
-
+        """turn uri into a qname given self.namespaces
+        This works for rdflib graphs and is defined for SesameGraph
+        but is **not** part of SPARQLGraph"""
+        raise NotImplementedError
+        
 
     def query(self, strOrQuery, initBindings={}, initNs={}, resultMethod="xml",processor="sparql"):
         """
@@ -248,11 +248,14 @@ class SPARQLGraph(object):
          xml streams over the result set and json must read the entire set  to succeed 
         :param processor: The kind of RDF query (must be 'sparql' or 'serql')
         """
-        query = strOrQuery
-        if initNs:
-	    prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
+        log.debug("Raw Query: %s"%(strOrQuery))
+        prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
+        if initBindings :
+            query=_processInitBindings(strOrQuery,initBindings)
+        else:
+            query = strOrQuery	        
 	    query = prefixes + query
-        log.debug("Query: %s"%(query))
+        log.debug("Prepared Query: %s"%(query))
         query = dict(query=query,queryLn=processor)
         url = self.url+"?"+urlencode(query)
         req = Request(url)
@@ -262,7 +265,26 @@ class SPARQLGraph(object):
             return self._sparql_results_json(req)
         else:
             raise "Unknown resultMethod: %s"%(resultMethod)
-        
+    
+    @classmethod
+    def _processInitBindings(cls, query, initBindings):
+        """_processInitBindings will convert a query by replacing the Variables
+        :param query: the query to process
+        :param initBindings: a dict of variable to value"""
+        # TODO: what if a BNode is the val in the bindings
+        #       should it be left at a ?var or converted to a _:bnode ???
+        def varval(x):
+            var =  x.groups()[0]
+            if var in initBindings:
+                val = initBindings[var]
+                try:
+                    return val.n3()
+                except:
+                    return Literal(val).n3()
+            return x.group()
+
+        return re_qvars.sub(varval,query)
+    
     def _sparql_results_json(self,req):
         """_sparql_results_json takes a Request
          returns an interator over the results but

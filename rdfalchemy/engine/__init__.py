@@ -52,7 +52,7 @@ def create_engine(url='', create=False):
         root=conn.root()
         # get the Conjunctive Graph
         if 'rdflib' not in root and create:
-            root['rdflib'] = ConjunctiveGraph()
+            root['rdflib'] = ConjunctiveGraph('ZODB')
         db=root['rdflib']
     else:
         raise "Could not parse  string '%s'" % url

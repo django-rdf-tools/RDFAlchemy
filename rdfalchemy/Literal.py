@@ -18,7 +18,7 @@ XSD = Namespace(u'http://www.w3.org/2001/XMLSchema#')
 try:
     from decimal import Decimal
     bindLiteral(XSD.decimal,Decimal)
-    _PythonToXSD.update(dict([(Decimal,(str,'decimal'))]))
+    _PythonToXSD.update(dict([(Decimal,(str,XSD.decimal))]))
 except:
     pass
     
