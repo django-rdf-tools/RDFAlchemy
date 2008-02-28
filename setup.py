@@ -5,14 +5,16 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
+__version__="0.2b2"
+
 setup(
     name='RDFAlchemy',
-    version="0.2b1",
+    version=__version__,
     description="rdflib wrapper",
     author='Philip Cooper',
     author_email='philip.cooper@openvest.com',
     url="http://www.openvest.com/trac/wiki/RDFAlchemy",
-    download_url="http://www.openvest.com/public/downloads/RDFAlchemy-0.2b1.tar.gz",
+    download_url="http://www.openvest.com/public/downloads/RDFAlchemy-%s.tar.gz"%__version__,
     install_requires=["rdflib==2.4.0"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
@@ -34,10 +36,26 @@ Allows access to:
     
       * rdflib_ datastores
       * Sesame_ Repositories
-      * SPARQL endpoints
+      * SPARQL_ endpoints
+  
+Provides intuitive access to RDF values by accessing predicate values through dot notation.    
+
+.. code-block:: python
+
+  ov = Namespace('http://owl.openvest.org/2005/10/Portfolio#')
+
+  class Company(rdfSubject):
+    rdf_type = ov.Company
+    symbol = rdfSingle(ov.symbol,'symbol')  #second param is optional
+    cik = rdfSingle(ov.secCik)
+    companyName = rdfSingle(ov.companyName)
+
+  c = Company.get_by(symbol = 'IBM')
+  print "%s has an SEC symbol of %s" % (c.companyName, c.cik)
       
 .. _rdflib: http://rdflib.net
 .. _Sesame: http://www.openrdf.org
+.. _SPARQL: http://www.w3.org/TR/rdf-sparql-query/
     """
 
 )
