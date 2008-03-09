@@ -319,9 +319,10 @@ class rdfSubject(object):
         print " "
 
     def md5_term_hash(self):
-        d = md5(str(self))
-        d.update("R")
-        return d.hexdigest()
+        return self.resUri.md5_term_hash()
+        #d = md5(str(self))
+        #d.update("R")
+        #return d.hexdigest()
         
     
 

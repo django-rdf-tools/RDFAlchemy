@@ -40,18 +40,19 @@ Allows access to:
   
 Provides intuitive access to RDF values by accessing predicate values through dot notation.    
 
-.. code-block:: python
 
   ov = Namespace('http://owl.openvest.org/2005/10/Portfolio#')
-
+  
   class Company(rdfSubject):
     rdf_type = ov.Company
     symbol = rdfSingle(ov.symbol,'symbol')  #second param is optional
     cik = rdfSingle(ov.secCik)
     companyName = rdfSingle(ov.companyName)
-
+  
   c = Company.get_by(symbol = 'IBM')
   print "%s has an SEC symbol of %s" % (c.companyName, c.cik)
+
+Includes advanced descriptors for read/write access to lists and collections.
       
 .. _rdflib: http://rdflib.net
 .. _Sesame: http://www.openrdf.org

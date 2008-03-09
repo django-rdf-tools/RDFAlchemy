@@ -1,4 +1,3 @@
-from rdflib import ConjunctiveGraph
 import os
 import re
 import urllib
@@ -20,15 +19,18 @@ def create_engine(url='', create=False):
        otherwise ClientStoreage is assumed which requires
        a ZEO Server to be running"""
     if url=='' or url.startswith('IOMemory'):
+        from rdflib import ConjunctiveGraph
         db = ConjunctiveGraph('IOMemory')
     elif url.lower().startswith('mysql://'):
+        from rdflib import ConjunctiveGraph
+        db = ConjunctiveGraph('MySQL')
         schema,opts = _parse_rfc1738_args(url)
         openstr= 'db=%(database)s,host=%(host)s,user=%(username)s'%opts
-        db = ConjunctiveGraph('MySQL')
         db.open(openstr)
     elif url.lower().startswith('sleepycat://'):
-        openstr = os.path.abspath(os.path.expanduser(url[12:]))
+        from rdflib import ConjunctiveGraph
         db = ConjunctiveGraph('Sleepycat')
+        openstr = os.path.abspath(os.path.expanduser(url[12:]))
         db.open(openstr) #,create=create) 
     elif url.lower().startswith('zodb://'):
         import ZODB
@@ -54,9 +56,32 @@ def create_engine(url='', create=False):
         if 'rdflib' not in root and create:
             root['rdflib'] = ConjunctiveGraph('ZODB')
         db=root['rdflib']
+    elif url.lower().startswith('sesame://'):
+        from rdfalchemy.sesame2 import SesameGraph
+        db = SesameGraph("http://"+url[9:])
+    elif url.lower().startswith('sparql://'):
+        from rdfalchemy.sparql import SPARQLGraph
+        db = SPARQLGraph("http://"+url[9:])
     else:
         raise "Could not parse  string '%s'" % url
     return db
+    
+def engine_from_config(configuration, prefix='rdfalchemy.', **kwargs):
+    """Create a new Engine instance using a configuration dictionary.
+    
+    :param configuration: a dictionary, typically produced from a config file 
+    where keys are prefixed, such as `rdfalchemy.url`, etc.  
+    :param prefix: indicates the prefix to be searched for.
+    """
+
+    options = dict([(key[len(prefix):], configuration[key])
+                 for key in configuration 
+                  if key.startswith(prefix)])
+
+    opts.update(kwargs)
+    url = options.pop('url')
+    return create_engine(url, **options)
+
     
 def _parse_rfc1738_args(name):
     """ parse url str into options
