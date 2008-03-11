@@ -10,6 +10,7 @@ from struct import unpack
 from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
 
 import os
+import re
 import simplejson
 import logging
 
@@ -171,28 +172,31 @@ class SesameGraph(SPARQLGraph):
          xml streams over the result set and json must read the entire set  to succeed 
         :param processor: The kind of RDF query (must be 'sparql' or 'serql')
         """
-        query = strOrQuery
-        if initNs:
-	    prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
-	    query = prefixes + query
-        log.debug("Query: %s"%(query))
-        query = dict(query=query,queryLn=processor)
-        url = self.url+"?"+urlencode(query)
-        req = Request(url)
-        if resultMethod == 'brtr':
-            return self._sparql_results_brtr(req)
-        elif resultMethod == 'json':
-            return self._sparql_results_json(req)
-        elif resultMethod == 'xml':
-            return self._sparql_results_xml(req)
-        else:
-            raise "Unknown resultMethod: %s"%(resultMethod)
+        # same method as super with different resultMethod default
+        return super(SesameGraph, self).query(strOrQuery, initBindings, initNs, resultMethod,processor)
+        
+        
+    def _sparql_results(self, req, resultMethod):
+        try:
+            if resultMethod == 'brtr':
+                return self._sparql_results_brtr(req)
+            elif resultMethod == 'json':
+                return self._sparql_results_json(req)
+            elif resultMethod == 'xml':
+                return self._sparql_results_xml(req)
+            else:
+                raise "Unknown resultMethod: %s"%(resultMethod)
+        except HTTPError, e:
+            if e.code == 400:
+                errmsg = e.fp.read()
+                if re.search("\nexceptionClass\s*=\s*org.openrdf.query.MalformedQueryException",errmsg):
+                    errmsg = re.search("\nexceptionMessage\s*=\s*(.*)",errmsg).groups()[0]
+                    raise MalformedQueryError, errmsg
+            raise HTTPError, e
             
     def _sparql_results_brtr(self,req):
         """_sparql_results_brtr takes a Request
          returns an interator over the results"""
-        var_names=[]
-        bindings=[] 
         req.add_header('Accept','application/x-binary-rdf-results-table')
         log.debug("Request: %s" % req.get_full_url())
         return _BRTRSPARQLHandler(urlopen(req))
@@ -274,7 +278,7 @@ class _BRTRSPARQLHandler(object):
     def next(self):
         for i in range(self.ncols):
             val = self.getval()
-            if val == 1: # REPEAT
+            if val is 1: # REPEAT
                 continue
             self.values[i] = val             
         return tuple(self.values)

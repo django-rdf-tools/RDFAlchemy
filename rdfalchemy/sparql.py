@@ -2,7 +2,7 @@ from rdflib import ConjunctiveGraph, RDF
 from rdflib import URIRef , Literal, BNode
 from rdflib.syntax.parsers.ntriples import NTriplesParser
 
-from urllib2 import urlopen, Request
+from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 
 import re
@@ -37,7 +37,6 @@ _RESULT  = _S_NS+"result"
 _X_NS = "{http://www.w3.org/XML/1998/namespace}"
 _LANG = _X_NS+"lang"
 
-re_qvars = re.compile('(?<=[\]\.\;\{\s])\?([a-zA-Z][a-zA-Z0-9]*)')
 
 class DumpSink(object):
    def __init__(self):
@@ -251,7 +250,7 @@ class SPARQLGraph(object):
         log.debug("Raw Query: %s"%(strOrQuery))
         prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
         if initBindings :
-            query=_processInitBindings(strOrQuery,initBindings)
+            query=self._processInitBindings(strOrQuery,initBindings)
         else:
             query = strOrQuery	        
 	    query = prefixes + query
@@ -259,12 +258,9 @@ class SPARQLGraph(object):
         query = dict(query=query,queryLn=processor)
         url = self.url+"?"+urlencode(query)
         req = Request(url)
-        if resultMethod == 'xml':
-            return self._sparql_results_xml(req)
-        elif resultMethod == 'json':
-            return self._sparql_results_json(req)
-        else:
-            raise "Unknown resultMethod: %s"%(resultMethod)
+        
+        return self._sparql_results(req, resultMethod)
+
     
     @classmethod
     def _processInitBindings(cls, query, initBindings):
@@ -282,10 +278,29 @@ class SPARQLGraph(object):
                 except:
                     return Literal(val).n3()
             return x.group()
-
+        
+        re_qvars = re.compile('(?<=[\]\.\;\{\s])\?(%s)'%('|'.join(initBindings.keys())))
         return re_qvars.sub(varval,query)
     
-    def _sparql_results_json(self,req):
+    def _sparql_results(self, req, resultMethod):        
+        try:
+            if resultMethod == 'json':
+                return self._sparql_results_json(req)
+            elif resultMethod == 'xml':
+                return self._sparql_results_xml(req)
+            else:
+                raise "Unknown resultMethod: %s"%(resultMethod)
+        except HTTPError, e:
+            if e.code == 400 and e.msg.startswith('Parse_error'):
+                errmsg = e.fp.read()
+                errmsg = re.search("<pre>(.*)</pre>",errmsg).groups()[0]
+                raise MalformedQueryError, errmsg
+            raise HTTPError, e
+        except:
+            raise 'what type'
+
+    @classmethod
+    def _sparql_results_json(cls,req):
         """_sparql_results_json takes a Request
          returns an interator over the results but
          **does not use a real generator** 
@@ -311,8 +326,8 @@ class SPARQLGraph(object):
                    raise AttributeError("Binding type error: %s"%(type))
             yield tuple([b.get(var) for var in var_names])
             
-
-    def _sparql_results_xml(self,req):
+    @classmethod
+    def _sparql_results_xml(cls,req):
         """_sparql_results_xml takes a Request
          returns an interator over the results"""
         # this uses xml.

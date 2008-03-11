@@ -7,20 +7,21 @@ Created by Philip Cooper on 2008-02-03.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
-from rdflib import URIRef, BNode, Namespace
+from rdflib import URIRef, BNode, Namespace, RDF
 from rdflib.Identifier import Identifier 
 from rdfalchemy import rdfSubject, Literal 
 from copy import copy
 
-#from rdfalchemy import rdfSubject
 import logging
-##console = logging.StreamHandler()
-##formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-##console.setFormatter(formatter)
+#console = logging.StreamHandler()
+#formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+#console.setFormatter(formatter)
+
 log=logging.getLogger(__name__)
+#log.setLevel(logging.DEBUG)
+#log.addHandler(console)
 
-RDF  = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-
+RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 
 # helper function, might be somewhere in rdflib I need to look for it there
 def getList(sub, pred=None, db=None):

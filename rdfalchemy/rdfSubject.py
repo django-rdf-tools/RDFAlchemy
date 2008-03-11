@@ -8,9 +8,9 @@ Requires rdflib <http://www.rdflib.net/> version 2.3 ??.
 """
 
 from rdflib import ConjunctiveGraph
-from rdflib import BNode, Namespace, URIRef
+from rdflib import BNode, Namespace, URIRef, RDF
 from rdflib.Identifier import Identifier 
-from rdflib.exceptions import *
+from rdfalchemy.exceptions import RDFAlchemyError
 from rdfalchemy.Literal import Literal
 import re
 
@@ -20,14 +20,13 @@ except ImportError:
     from md5 import md5    
 
 import logging
-##console = logging.StreamHandler()
-##formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-##console.setFormatter(formatter)
-log=logging.getLogger(__name__)
-##log.setLevel(logging.DEBUG)
-##log.addHandler(console)
+#console = logging.StreamHandler()
+#formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+#console.setFormatter(formatter)
 
-RDF  =Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+log=logging.getLogger(__name__)
+#log.setLevel(logging.DEBUG)
+#log.addHandler(console)
 
 re_ns_n = re.compile('(.*[/#])(.*)')
     
@@ -64,16 +63,16 @@ class rdfSubject(object):
         :param resUri: if None then create an instance with a BNode resUri
         :param kwargs: is a set of values that will be set using the keys to find the appropriate descriptor"""
         
-        if not resUri:
+        if not resUri:  # create a bnode
             self.resUri = BNode()
             if self.rdf_type:
                 self.db.add((self.resUri,RDF.type,self.rdf_type))
-        elif isinstance(resUri, (BNode, URIRef)):
+        elif isinstance(resUri, (BNode, URIRef)): # user the identifier passed in
             self.resUri=resUri
-        elif isinstance(resUri, rdfSubject):
+        elif isinstance(resUri, rdfSubject):      # use the resUri of the subject passed in 
             self.resUri=resUri.resUri 
             self.db=resUri.db
-        elif isinstance(resUri, (str, unicode)):
+        elif isinstance(resUri, (str, unicode)):  # create one from a <uri> or _:bnode string
             if resUri[0]=="<" and resUri[-1]==">":
                 self.resUri=URIRef(resUri[1:-1])
             elif resUri.startswith("_:"):
@@ -84,21 +83,17 @@ class rdfSubject(object):
         if kwargs:
             self._set_with_dict(kwargs)
 
-        if not resUri:
-            # lets create a new one
-            if self.rdf_type:
-                self.db.set((self.resUri,RDF.type, self.rdf_type))
-        # lets get a default namespace for this 
-        # ??obsolete ???
-        rdftype = list(self.db.objects(self.resUri, RDF.type))
-        if len(rdftype)==1:
-            self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
-            self.namespace=Namespace(self.namespace)
-        elif isinstance(self.resUri, URIRef):
-            ns_n =  re_ns_n.match(self.resUri)
-            if ns_n:
-                self.namespace, self.name = ns_n.groups()
-                self.namespace=Namespace(self.namespace)
+        ## lets get a default namespace for this 
+        ## ??obsolete ???
+        #rdftype = list(self.db.objects(self.resUri, RDF.type))
+        #if len(rdftype)==1:
+        #    self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
+        #    self.namespace=Namespace(self.namespace)
+        #elif isinstance(self.resUri, URIRef):
+        #    ns_n =  re_ns_n.match(self.resUri)
+        #    if ns_n:
+        #        self.namespace, self.name = ns_n.groups()
+        #        self.namespace=Namespace(self.namespace)
                 
     def n3(self):
         """n3 repr of this node"""
@@ -119,8 +114,9 @@ class rdfSubject(object):
     #short term hack.  Need to go to a sqlalchemy 0.4 style query method
     # obj.query.get_by should map to obj.get_by  ..same for fetch_by
     @classmethod
-    def query(obj):
-        return obj    
+    def query(cls):
+        return cls    
+    
 
     @classmethod
     def get_by(cls, **kwargs):

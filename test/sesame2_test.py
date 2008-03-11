@@ -23,3 +23,4 @@ def eq_bj_test():
 
 def eq_jx_test():
     assert j == x
+
