@@ -5,6 +5,8 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 
+from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
+
 import re
 import simplejson
 import logging
@@ -289,16 +291,17 @@ class SPARQLGraph(object):
             elif resultMethod == 'xml':
                 return self._sparql_results_xml(req)
             else:
-                raise "Unknown resultMethod: %s"%(resultMethod)
-        except HTTPError, e:
-            if e.code == 400 and e.msg.startswith('Parse_error'):
+                raise ValueError, "Unknown resultMethod: %s"%(resultMethod)
+        except HTTPError, e:  
+            ## Why does this not catch the HTTPError exceptions thrown above
+            ## This is replicated in the sub calls but that seems wrong???
+            if  e.code == 400:
                 errmsg = e.fp.read()
-                errmsg = re.search("<pre>(.*)</pre>",errmsg).groups()[0]
-                raise MalformedQueryError, errmsg
+                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
+                submsg = submsg and submsg.groups()[0]
+                raise QueryEvaluationError, submsg or errmsg
             raise HTTPError, e
-        except:
-            raise 'what type'
-
+        
     @classmethod
     def _sparql_results_json(cls,req):
         """_sparql_results_json takes a Request
@@ -308,7 +311,16 @@ class SPARQLGraph(object):
          yielding the first result"""
         req.add_header('Accept','application/sparql-results+json')
         log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
-        ret=simplejson.load(urlopen(req))
+        try:
+            stream = urlopen(req)
+        except HTTPError, e:
+            if  e.code == 400:
+                errmsg = e.fp.read()
+                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
+                submsg = submsg and submsg.groups()[0]
+                raise MalformedQueryError, submsg or errmsg
+            raise HTTPError, e
+        ret=simplejson.load(stream)
         var_names = ret['head']['vars'] 
         bindings = ret['results']['bindings']
         for b in bindings:
@@ -335,7 +347,16 @@ class SPARQLGraph(object):
         bindings=[] 
         req.add_header('Accept','application/sparql-results+xml')
         log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
-        events = iter(ET.iterparse(urlopen(req),events=('start','end')))
+        try:
+            stream = urlopen(req)
+        except HTTPError, e:
+            if  e.code == 400: # and e.msg.startswith('Parse_error'):
+                errmsg = e.fp.read()
+                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
+                submsg = submsg and submsg.groups()[0]
+                raise MalformedQueryError, submsg or errmsg
+            raise HTTPError, e
+        events = iter(ET.iterparse(stream,events=('start','end')))
         # lets gather up the variable names in head
         for (event, node) in events:
             if event == 'start' and node.tag == _VARIABLE:

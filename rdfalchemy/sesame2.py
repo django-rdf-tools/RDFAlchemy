@@ -206,7 +206,7 @@ class SesameGraph(SPARQLGraph):
         Parse source into Graph
 
         Graph will get loaded into it's own context (sub graph). 
-        Format defaults to xml (AKA rdf/xml). 
+        Format defaults to 'xml' (AKA: rdf/xml). 
 
         :returns: Returns the context into which  the source was parsed.
         
