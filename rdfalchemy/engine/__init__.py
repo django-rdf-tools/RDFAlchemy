@@ -3,8 +3,10 @@ import re
 import urllib
 
 def create_engine(url='', create=False):
-    """Takes a url string and returns an open
-    rdflib ConjunctiveGraph
+    """
+    :returns: returns an open rdflib ConjunctiveGraph
+
+    :param url: a string of the url
     e.g.:
       
       - create_engine('mysql://myname@localhost/rdflibdb')
@@ -71,6 +73,7 @@ def engine_from_config(configuration, prefix='rdfalchemy.', **kwargs):
     
     :param configuration: a dictionary, typically produced from a config file 
     where keys are prefixed, such as `rdfalchemy.url`, etc.  
+    
     :param prefix: indicates the prefix to be searched for.
     """
 
