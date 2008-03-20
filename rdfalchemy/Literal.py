@@ -57,7 +57,7 @@ date_parser = re.compile(r"""^
                 (?:Z|(?:
                         (?P<tz_sign>[+-])
                         (?P<tz_hour>\d{1,2})
-                        :
+                        :?
                         (?P<tz_min>\d{2,2})
                      )
                 )?
