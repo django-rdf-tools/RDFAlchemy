@@ -1,9 +1,9 @@
 from rdfalchemy.sesame2 import SesameGraph
 
-url = 'http://www.openvest.com:8080/sesame/repositories/Portfolio/'
+url = 'http://www.openvest.com:8080/openrdf-sesame/repositories/Portfolio/'
 g = SesameGraph(url)
 
-q1 = "select ?s ?p ?o where {?s ?p ?o}"
+q1 = "select ?s ?p ?o where {?s ?p ?o} limit 100"
 
 responses = {}
 b = set(list(g.query(q1,resultMethod='brtr')))

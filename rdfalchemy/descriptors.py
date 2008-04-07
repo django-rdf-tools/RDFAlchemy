@@ -145,6 +145,8 @@ class rdfSingle(rdfAbstract):
     def __set__(self, obj, value):
         log.debug("SET with descriptor value %s of type %s"%(value,type(value)))
         #setattr(obj, self.name, value)  #this recurses indefinatly
+        if isinstance(value,(list,tuple,set)):
+            raise AttributeError("to set an rdfSingle you must pass in a single value")
         obj.__dict__[self.name]= value
         o =value2object(value)
         obj.db.set((obj.resUri, self.pred, o))
@@ -179,8 +181,8 @@ class rdfMultiple(rdfAbstract):
 
     def __set__(self, obj, newvals):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
-        if not isinstance(newvals, list):
-            raise AttributeError("to set a rdfMulti you must pass in a list (it can be a list of one)")
+        if not isinstance(newvals, (list,tuple)):
+            raise AttributeError("to set a rdfMultiple you must pass in a list (it can be a list of one)")
         try:
             oldvals = obj.__dict__[self.name]
         except KeyError:
@@ -230,7 +232,7 @@ class rdfList(rdfMultiple):
         
     def __set__(self, obj, newvals):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
-        if not isinstance(newvals, list):
+        if not isinstance(newvals, (list,tuple)):
             raise AttributeError("to set a rdfList you must pass in a list (it can be a list of one)")
         try:
             oldvals = obj.__dict__[self.name]
@@ -300,7 +302,7 @@ class rdfContainer(rdfMultiple):
         
     def __set__(self, obj, newvals):
         log.debug("SET with descriptor value %s of type %s"%(newvals,type(newvals)))
-        if not isinstance(newvals, list):
+        if not isinstance(newvals, (list,tuple)):
             raise AttributeError("to set a rdfList you must pass in a list (it can be a list of one)")
         seq = obj.db.value(obj.resUri, self.pred)
         if not seq:
