@@ -230,6 +230,38 @@ class SPARQLGraph(object):
             if item:
                 yield item
             list = self.value(list, RDF.rest)
+            
+    def transitive_objects(self, subject, property, remember=None):
+       """Transitively generate objects for the `property` relationship
+
+       Generated objects belong to the depth first transitive closure of the
+       `property` relationship starting at `subject`.
+       """
+       if remember is None:
+           remember = {}
+       if subject in remember:
+           return
+       remember[subject] = 1
+       yield subject
+       for object in self.objects(subject, property):
+           for o in self.transitive_objects(object, property, remember):
+               yield o
+              
+    def transitive_subjects(self, predicate, object, remember=None):
+        """Transitively generate objects for the `property` relationship
+
+        Generated objects belong to the depth first transitive closure of the
+        `property` relationship starting at `subject`.
+        """
+        if remember is None:
+            remember = {}
+        if object in remember:
+            return
+        remember[object] = 1
+        yield object
+        for subject in self.subjects(predicate, object):
+            for s in self.transitive_subjects(predicate, subject, remember):
+                yield s
            
     def qname(self,uri):
         """turn uri into a qname given self.namespaces
