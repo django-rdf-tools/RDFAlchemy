@@ -192,6 +192,8 @@ class SesameGraph(SPARQLGraph):
                 if re.search("\nexceptionClass\s*=\s*org.openrdf.query.MalformedQueryException",errmsg):
                     errmsg = re.search("\nexceptionMessage\s*=\s*(.*)",errmsg).groups()[0]
                     raise MalformedQueryError, errmsg
+                elif errmsg.startswith('MALFORMED QUERY'):
+                    raise MalformedQueryError , errmsg
             raise HTTPError, e
             
     def _sparql_results_brtr(self,req):

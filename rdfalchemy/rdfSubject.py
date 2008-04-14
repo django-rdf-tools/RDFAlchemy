@@ -299,7 +299,8 @@ class rdfSubject(object):
         if not (isinstance(name, (BNode,URIRef))):
             raise AttributeError, ("cannot rename to %s" % name)
         for s,p,o in db.triples((self.resUri,None,None)):
-            db.set((name, p, o))
+            db.remove((s, p, o))
+            db.add((name, p, o))
         for s,p,o in db.triples((None,None,self.resUri)):
             db.set((s, p, name))
         self.resUri = name
