@@ -88,9 +88,8 @@ class SPARQLGraph(object):
         
         url = self.url+"?"+urlencode(query)
         req = Request(url)
-        log.debug("Request: %s" % req.get_full_url())
         req.add_header('Accept','application/rdf+xml')
-        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))        
+        log.debug("Request url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))        
         subgraph = ConjunctiveGraph('IOMemory')
         subgraph.parse(urlopen(req))
         return subgraph

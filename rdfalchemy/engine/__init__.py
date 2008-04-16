@@ -2,17 +2,20 @@ import os
 import re
 import urllib
 
-def create_engine(url='', create=False):
+def create_engine(url='', identifier="", create=False):
     """
     :returns: returns an open rdflib ConjunctiveGraph
 
     :param url: a string of the url
+    :param identifier: URIRef of the default context for writing
     e.g.:
       
       - create_engine('mysql://myname@localhost/rdflibdb')
       - create_engine('sleepycat://~/working/rdf_db')
       - create_engine('zodb:///var/rdflib/Data.fs')
       - create_engine('zodb://localhost:8672')
+      - create_engine('sesame://www.example.com:8080/openrdf-sesame/repositories/Test')      
+      - create_engine('sparql://www.example.com:2020/sparql')            
     
     for zodb:
     
@@ -25,15 +28,15 @@ def create_engine(url='', create=False):
         db = ConjunctiveGraph('IOMemory')
     elif url.lower().startswith('mysql://'):
         from rdflib import ConjunctiveGraph
-        db = ConjunctiveGraph('MySQL')
+        db = ConjunctiveGraph('MySQL',identifier)
         schema,opts = _parse_rfc1738_args(url)
         openstr= 'db=%(database)s,host=%(host)s,user=%(username)s'%opts
         db.open(openstr)
     elif url.lower().startswith('sleepycat://'):
         from rdflib import ConjunctiveGraph
-        db = ConjunctiveGraph('Sleepycat')
+        db = ConjunctiveGraph('Sleepycat',identifier=identifier)
         openstr = os.path.abspath(os.path.expanduser(url[12:]))
-        db.open(openstr) #,create=create) 
+        db.open(openstr,create=create)
     elif url.lower().startswith('zodb://'):
         import ZODB
         import transaction
