@@ -286,8 +286,8 @@ class SPARQLGraph(object):
         if initBindings :
             query=self._processInitBindings(strOrQuery,initBindings)
         else:
-            query = strOrQuery	        
-	    query = prefixes + query
+            query = strOrQuery
+        query = prefixes + query
         log.debug("Prepared Query: %s"%(query))
         query = dict(query=query,queryLn=processor)
         url = self.url+"?"+urlencode(query)
