@@ -122,5 +122,5 @@ def _parse_rfc1738_args(name):
             opts['password'] = urllib.unquote_plus(opts['password'])
         return (name, opts)
     else:
-        raise exceptions.ArgumentError("Could not parse rfc1738 URL from string '%s'" % name)
+        raise exceptions.ValueError("Could not parse rfc1738 URL from string '%s'" % name)
 

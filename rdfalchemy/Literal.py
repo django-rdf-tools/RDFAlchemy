@@ -10,9 +10,26 @@ from rdflib import Namespace, Literal
 from rdflib.Literal import bind as bindLiteral
 from rdflib.Literal import _PythonToXSD
 import re
+import logging
 
 XSD = Namespace(u'http://www.w3.org/2001/XMLSchema#')
 
+################################################################################
+# Let's fix the logging.  this seems like a log of work...
+# all that it does is not log rebinding errors 
+# We know about them ... and they confuse type citizenry
+_log = logging.getLogger("rdflib")
+if not _log.handlers:
+    class rebindingLogFilter(logging.Filter):
+        def filter(self, record):
+            if record.getMessage().find("Rebinding") > -1:
+                return False
+            return True
+    
+    h = logging.StreamHandler()
+    h.addFilter(rebindingLogFilter())
+    _log.addHandler(h)
+    
 ################################################################################
 ## Let's make toPython return a Decimal if an XSD.decimal in in the triplestore
 try:
