@@ -1,4 +1,4 @@
-from rdfalchemy.sesame2 import SesameGraph
+from rdfalchemy.sparql.sesame2 import SesameGraph
 
 url = 'http://www.openvest.com:8080/openrdf-sesame/repositories/Portfolio/'
 g = SesameGraph(url)

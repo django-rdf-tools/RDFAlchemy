@@ -7,16 +7,18 @@ Created by Philip Cooper on 2008-02-03.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
-from rdflib import URIRef, BNode, Namespace, RDF
+from rdflib import URIRef, BNode, Namespace
 from rdflib.Identifier import Identifier 
 from rdfalchemy import rdfSubject, Literal 
 from copy import copy
 
 import logging
+
+__all__=["rdfSingle","rdfMultiple","rdfList","rdfContainer"]
+
 #console = logging.StreamHandler()
 #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 #console.setFormatter(formatter)
-
 log=logging.getLogger(__name__)
 #log.setLevel(logging.DEBUG)
 #log.addHandler(console)
@@ -296,7 +298,7 @@ class rdfContainer(rdfMultiple):
             i += 1
             first=obj.db.value(base, RDF['_%d'%i])
 
-        val=[((isinstance(v,BNode) or isinstance(v,URIRef)) and self.range_class(v) or v.toPython()) for v in members]
+        val=[(isinstance(v,(BNode,URIRef)) and self.range_class(v) or v.toPython()) for v in members]
         obj.__dict__[self.name] = val
         return val
         

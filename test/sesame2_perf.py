@@ -1,5 +1,5 @@
 from datetime import datetime
-from rdfalchemy.sesame2 import SesameGraph
+from rdfalchemy.sparql.sesame2 import SesameGraph
 
 import logging 
 

@@ -15,9 +15,9 @@ import logging
 XSD = Namespace(u'http://www.w3.org/2001/XMLSchema#')
 
 ################################################################################
-# Let's fix the logging.  this seems like a log of work...
-# all that it does is not log rebinding errors 
-# We know about them ... and they confuse type citizenry
+# Let's fix the logging.  This seems like a lot of work...
+# all that it does is not log rebinding errors. 
+# We know already about them ... and the warnings confuse the citizenry.
 _log = logging.getLogger("rdflib")
 if not _log.handlers:
     class rebindingLogFilter(logging.Filter):

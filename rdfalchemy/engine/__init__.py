@@ -62,7 +62,7 @@ def create_engine(url='', identifier="", create=False):
             root['rdflib'] = ConjunctiveGraph('ZODB')
         db=root['rdflib']
     elif url.lower().startswith('sesame://'):
-        from rdfalchemy.sesame2 import SesameGraph
+        from rdfalchemy.sparql.sesame2 import SesameGraph
         db = SesameGraph("http://"+url[9:])
     elif url.lower().startswith('sparql://'):
         from rdfalchemy.sparql import SPARQLGraph

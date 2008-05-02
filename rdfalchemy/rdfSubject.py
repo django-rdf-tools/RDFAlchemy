@@ -53,14 +53,14 @@ class rdfSubject(object):
     def __init__(self, resUri = None, **kwargs):
         """The constructor tries hard to do return you an rdfSubject
 
-        :param resUri: the *resource uri* can be one of
+        :param resUri: the "resource uri". If `None` then create an instance with a BNode resUri.
+        Can be given as one of
 
            * an instance of an rdfSubject
            * an instance of a BNode or a URIRef
            * an n3 uriref string like: "<urn:isbn:1234567890>"
            * an n3 bnode string like: "_:xyz1234" 
         
-        :param resUri: if None then create an instance with a BNode resUri
         :param kwargs: is a set of values that will be set using the keys to find the appropriate descriptor"""
         
         if not resUri:  # create a bnode

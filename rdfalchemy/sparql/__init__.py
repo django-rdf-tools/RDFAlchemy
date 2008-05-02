@@ -1,44 +1,19 @@
-from rdflib import ConjunctiveGraph, RDF
-from rdflib import URIRef , Literal, BNode
+from rdfalchemy import URIRef , Literal, BNode, RDF
+from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
+from rdfalchemy.sparql.parsers import _XMLSPARQLHandler,_JSONSPARQLHandler
+
+from rdflib import ConjunctiveGraph
 from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 
-from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
-
 import re
-import simplejson
 import logging
 
+__all__=["SPARQLGraph",]
+
 log=logging.getLogger(__name__)
-
-# use a fast ElementTree
-# TODO: test these each for iterparse compatability and relative speed
-try:
-    import cElementTree as ET # effbot's C module
-except ImportError:
-    try:
-        import xml.etree.ElementTree as ET # in python >=2.5
-    except ImportError:
-        try:
-            import lxml.etree as ET # ElementTree API using libxml2
-        except ImportError:
-            import elementtree.ElementTree as ET # effbot's pure Python module
-log.debug('Using ElementTree: %s' % ET)
-
-# some constants for parsing the xml tree
-_S_NS    = "{http://www.w3.org/2005/sparql-results#}"
-_VARIABLE= _S_NS+"variable"
-_BNODE   = _S_NS+"bnode"
-_URI     = _S_NS+"uri"
-_BINDING = _S_NS+"binding"
-_LITERAL = _S_NS+"literal"
-_HEAD    = _S_NS+"head"
-_RESULT  = _S_NS+"result"
-_X_NS = "{http://www.w3.org/XML/1998/namespace}"
-_LANG = _X_NS+"lang"
-
 
 class DumpSink(object):
    def __init__(self):
@@ -57,6 +32,8 @@ class SPARQLGraph(object):
     gives 'read-only' access to the graph
     constructor takes http endpoint and repository name
     e.g.  SPARQLGraph('http://localhost:2020/sparql')"""
+    
+    parsers = {'xml': _XMLSPARQLHandler, 'json': _JSONSPARQLHandler}
     
     def __init__(self, url, context=None):
         self.url = url
@@ -106,14 +83,11 @@ class SPARQLGraph(object):
         if method == 'CONSTRUCT':
             return self.construct((s,p,o)).triples((None,None,None))
         elif method == 'SELECT':
-            if s or p or o:
-                pattern = "%s %s %s"%((s and s.n3() or '?s'),(p and p.n3() or '?p'),(o and o.n3() or '?o'))
-            else:
-                pattern = ''
-            query = "select ?s ?p ?o where {?s ?p ?o. %s}" % pattern
+            pattern = "%s %s %s"%((s and s.n3() or '?s'),(p and p.n3() or '?p'),(o and o.n3() or '?o'))
+            query = "select ?s ?p ?o where { %s . }" % pattern
             return self.query(query)
         else:
-            raise "Unknown method: %s"%(method)
+            raise ValueError, "Unknown method: %s"%(method)
     
     def __iter__(self):
         """Iterates over all triples in the store"""
@@ -194,8 +168,7 @@ class SPARQLGraph(object):
                            (subject, predicate, object))
                     triples = self.triples((subject, predicate, object))
                     for (s, p, o) in triples:
-                        msg += "(%s, %s, %s)\n" % (
-                            s, p, o)
+                        msg += "(%s, %s, %s)\n" % (s, p, o)
                     raise exceptions.UniquenessError(msg)
                 except StopIteration, e:
                     pass
@@ -269,7 +242,7 @@ class SPARQLGraph(object):
         raise NotImplementedError
         
 
-    def query(self, strOrQuery, initBindings={}, initNs={}, resultMethod="xml",processor="sparql"):
+    def query(self, strOrQuery, initBindings={}, initNs={}, resultMethod="xml",processor="sparql",rawResults=False):
         """
         Executes a SPARQL query against this Graph
         
@@ -279,6 +252,7 @@ class SPARQLGraph(object):
         :param resultMethod: results query requested (must be 'xml' or 'json') 
          xml streams over the result set and json must read the entire set  to succeed 
         :param processor: The kind of RDF query (must be 'sparql' or 'serql')
+        :param rawResutls: If set to `True`, returns the raw xml or json stream rather than the parsed results.
         """
         log.debug("Raw Query: %s"%(strOrQuery))
         prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
@@ -290,11 +264,23 @@ class SPARQLGraph(object):
         log.debug("Prepared Query: %s"%(query))
         query = dict(query=query,queryLn=processor)
         url = self.url+"?"+urlencode(query)
-        req = Request(url)
-        
-        return self._sparql_results(req, resultMethod)
+        parser = self.getParser(resultMethod, url)
 
-    
+        return rawResults and parser.stream or parser.parse() 
+        
+    def getParser(self, resultMethod, url):
+        try:
+            return self.parsers[resultMethod](url)
+        except LookupError:
+            raise ValueError , "Invalid resultMethod: %s" % resultMethod
+        except HTTPError, e:
+            if  e.code == 400: # and e.msg.startswith('Parse_error'):
+                errmsg = e.fp.read()
+                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
+                submsg = submsg and submsg.groups()[0]
+                raise MalformedQueryError, submsg or errmsg
+            raise HTTPError, e 
+            
     @classmethod
     def _processInitBindings(cls, query, initBindings):
         """_processInitBindings will convert a query by replacing the Variables
@@ -315,105 +301,6 @@ class SPARQLGraph(object):
         re_qvars = re.compile('(?<=[\]\.\;\{\s])\?(%s)'%('|'.join(initBindings.keys())))
         return re_qvars.sub(varval,query)
     
-    def _sparql_results(self, req, resultMethod):        
-        try:
-            if resultMethod == 'json':
-                return self._sparql_results_json(req)
-            elif resultMethod == 'xml':
-                return self._sparql_results_xml(req)
-            else:
-                raise ValueError, "Unknown resultMethod: %s"%(resultMethod)
-        except HTTPError, e:  
-            ## Why does this not catch the HTTPError exceptions thrown above
-            ## This is replicated in the sub calls but that seems wrong???
-            if  e.code == 400:
-                errmsg = e.fp.read()
-                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
-                submsg = submsg and submsg.groups()[0]
-                raise QueryEvaluationError, submsg or errmsg
-            raise HTTPError, e
-        
-    @classmethod
-    def _sparql_results_json(cls,req):
-        """_sparql_results_json takes a Request
-         returns an interator over the results but
-         **does not use a real generator** 
-         it consumes the entire result set before
-         yielding the first result"""
-        req.add_header('Accept','application/sparql-results+json')
-        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
-        try:
-            stream = urlopen(req)
-        except HTTPError, e:
-            if  e.code == 400:
-                errmsg = e.fp.read()
-                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
-                submsg = submsg and submsg.groups()[0]
-                raise MalformedQueryError, submsg or errmsg
-            raise HTTPError, e
-        ret=simplejson.load(stream)
-        var_names = ret['head']['vars'] 
-        bindings = ret['results']['bindings']
-        for b in bindings:
-            for var,val in b.items():
-                type = val['type']
-                if type=='uri':
-                   b[var]=URIRef(val['value'])
-                elif type == 'bnode':
-                   b[var]=BNode(val['value'])
-                elif type == 'literal':
-                   b[var]=Literal(val['value'],lang=val.get('xml:lang'))
-                elif type == 'typed-literal':
-                   b[var]=Literal(val['value'],datatype=val.get('datatype'))
-                else:
-                   raise AttributeError("Binding type error: %s"%(type))
-            yield tuple([b.get(var) for var in var_names])
-            
-    @classmethod
-    def _sparql_results_xml(cls,req):
-        """_sparql_results_xml takes a Request
-         returns an interator over the results"""
-        # this uses xml.
-        var_names=[]
-        bindings=[] 
-        req.add_header('Accept','application/sparql-results+xml')
-        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
-        try:
-            stream = urlopen(req)
-        except HTTPError, e:
-            if  e.code == 400: # and e.msg.startswith('Parse_error'):
-                errmsg = e.fp.read()
-                submsg = re.search("<pre>(.*)</pre>",errmsg,re.MULTILINE|re.DOTALL)
-                submsg = submsg and submsg.groups()[0]
-                raise MalformedQueryError, submsg or errmsg
-            raise HTTPError, e
-        events = iter(ET.iterparse(stream,events=('start','end')))
-        # lets gather up the variable names in head
-        for (event, node) in events:
-            if event == 'start' and node.tag == _VARIABLE:
-                var_names.append(node.get('name'))
-            elif event == 'end' and node.tag == _HEAD:
-                break
-        # now let's yield each result as we parse them
-        for (event, node) in events:
-            if event == 'start':
-                if node.tag == _RESULT:
-                    bindings = [None,] *  len(var_names)
-                elif node.tag == _BINDING:
-                    idx = var_names.index(node.get('name'))
-            elif event == 'end':
-                if node.tag == _URI:
-                    bindings[idx] = URIRef(node.text)
-                elif node.tag == _BNODE:
-                    bindings[idx] = BNode(node.text)
-                elif node.tag == _LITERAL:
-                    bindings[idx] = Literal(node.text or '',
-                                        datatype = node.get('datatype'), 
-                                        lang= node.get(_LANG))
-                elif node.tag == _RESULT:
-                    node.clear()
-                    yield tuple(bindings)
-
 
     def describe(self, s_or_po, initBindings={}, initNs={}):
         """
@@ -447,4 +334,3 @@ class SPARQLGraph(object):
         subgraph = ConjunctiveGraph()
         subgraph.parse(urlopen(req))
         return subgraph
-

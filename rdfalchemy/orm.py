@@ -43,6 +43,6 @@ def mapper(*classes):
 
 #def mapBase(baseclass):
 #    """This maps all classes below baseclass as in mapper()
-#    AND puts the dict of {rdf_type: mapped_class}  in an baseclass.type2class attribute"""
-#    baseclass.type2class = mapper(allsub(baseclass))
+#    AND puts the dict of {rdf_type: mapped_class}  in an baseclass._type2class attribute"""
+#    baseclass._type2class = mapper(*allsub(baseclass))
     
