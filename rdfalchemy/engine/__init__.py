@@ -76,8 +76,8 @@ def engine_from_config(configuration, prefix='rdfalchemy.', **kwargs):
     
     :param configuration: a dictionary, typically produced from a config file 
     where keys are prefixed, such as `rdfalchemy.url`, etc.  
-    
     :param prefix: indicates the prefix to be searched for.
+    
     """
 
     options = dict([(key[len(prefix):], configuration[key])

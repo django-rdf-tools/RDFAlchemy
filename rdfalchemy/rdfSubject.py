@@ -54,7 +54,7 @@ class rdfSubject(object):
         """The constructor tries hard to do return you an rdfSubject
 
         :param resUri: the "resource uri". If `None` then create an instance with a BNode resUri.
-        Can be given as one of
+        Can be given as one of:
 
            * an instance of an rdfSubject
            * an instance of a BNode or a URIRef
@@ -224,7 +224,7 @@ class rdfSubject(object):
         
     def _set_with_dict(self, kv):
         """
-        :param kv: a dict ::
+        :param kv: a dict 
         
           for each key,value pair in dict kv
                set self.key = value
@@ -272,7 +272,7 @@ class rdfSubject(object):
                 if isinstance(node,(URIRef,Literal)):
                     return False
                 for s,p,o in db.triples((None,None,node)):
-                        return False
+                    return False
                 return True
         elif cascade == 'none':
             def test(node):
@@ -282,7 +282,7 @@ class rdfSubject(object):
                 if isinstance(node, Literal):
                     return False
                 for s,p,o in db.triples((None,None,node)):
-                        return False
+                    return False
                 return True
         else:
             raise AttributeError, "unknown cascade argument"

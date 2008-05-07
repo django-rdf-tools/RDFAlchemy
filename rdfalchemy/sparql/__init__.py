@@ -252,7 +252,7 @@ class SPARQLGraph(object):
         :param resultMethod: results query requested (must be 'xml' or 'json') 
          xml streams over the result set and json must read the entire set  to succeed 
         :param processor: The kind of RDF query (must be 'sparql' or 'serql')
-        :param rawResutls: If set to `True`, returns the raw xml or json stream rather than the parsed results.
+        :param rawResults: If set to `True`, returns the raw xml or json stream rather than the parsed results.
         """
         log.debug("Raw Query: %s"%(strOrQuery))
         prefixes = ''.join(["prefix %s: <%s>\n"%(p,n) for p,n in initNs.items()])
@@ -284,6 +284,12 @@ class SPARQLGraph(object):
     @classmethod
     def _processInitBindings(cls, query, initBindings):
         """_processInitBindings will convert a query by replacing the Variables
+        
+        >>> SPARQLGraph._processInitBindings('SELECT ?x { ?x ?y ?z }', {'z' : 'hi'})
+        u'SELECT ?x { ?x ?y "hi" }'
+        >>> SPARQLGraph._processInitBindings('SELECT ?x { ?x <http://example/?z=1> ?z }', {'z' : 'hi'})
+        u'SELECT ?x { ?x <http://example/?z=1> "hi" }'
+
         :param query: the query to process
         :param initBindings: a dict of variable to value"""
         # TODO: what if a BNode is the val in the bindings

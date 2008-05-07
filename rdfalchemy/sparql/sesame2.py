@@ -163,7 +163,7 @@ class SesameGraph(SPARQLGraph):
         :param resultMethod: results query requested (must be 'xml', 'json' 'brtr') 
          xml streams over the result set and json must read the entire set  to succeed 
         :param processor: The kind of RDF query (must be 'sparql' or 'serql')
-        :param rawResutls: If set to `True`, returns the raw xml or json stream rather than the parsed results.        
+        :param rawResults: If set to `True`, returns the raw xml or json stream rather than the parsed results.        
         """
         # same method as super with different resultMethod default
         return super(SesameGraph, self).query(strOrQuery, initBindings, initNs, resultMethod,processor,rawResults)
@@ -211,9 +211,8 @@ class SesameGraph(SPARQLGraph):
             # 204 is actually the "success" code
             if e.code == 204:
                 return
-            else:
-                log.error(e) 
-                HTTPError, e
+            log.error(e) 
+            raise HTTPError, e
         return result
 
     def load(self, source, publicID=None, format="xml"):
