@@ -26,9 +26,11 @@ log.debug('Using ElementTree: %s' % ET)
 
 
 class _SPARQLHandler(object):
-    """Handler for the sesame binary table format BRTR_
+    """Abstract base class for parsing the response stream of a sparql query
+    Real classhes should subclass from here but should **not** do too much during `__init__`
     
-    .. _BRTR: http://www.openrdf.org/doc/sesame/api/org/openrdf/sesame/query/BinaryTableResultConstants.html
+    `__init__` should stip after opening the stream and not read so that users have the
+    option to call p.stream.read() to get the rawResults
     """
     mimetype = ""
 
@@ -40,9 +42,12 @@ class _SPARQLHandler(object):
         
 
 class _JSONSPARQLHandler(_SPARQLHandler):
-    """Handler for the sesame binary table format BRTR_
+    """Parse the results of a sparql query returned as json.
     
-    .. _BRTR: http://www.openrdf.org/doc/sesame/api/org/openrdf/sesame/query/BinaryTableResultConstants.html
+    Note: this uses simplejson.load which will consume the entire
+    stream before returning any results. The XML handler uses a generator
+    type return so it returns the first tuple as soon as it's available 
+    *without* having to comsume the entire stream
     """
     mimetype = 'application/sparql-results+json'
 
@@ -80,9 +85,11 @@ _LANG = _X_NS+"lang"
 
 
 class _XMLSPARQLHandler(_SPARQLHandler):
-    """Handler for the sesame binary table format BRTR_
+    """Parse the results of a sparql query returned as xml.
     
-    .. _BRTR: http://www.openrdf.org/doc/sesame/api/org/openrdf/sesame/query/BinaryTableResultConstants.html
+    Note: returns a generator so that the first tuple is 
+    available as soon as it is sent.  This does **not** need to consume
+    the entire results stream before returning results (that's a good thing :-). 
     """
     mimetype = 'application/sparql-results+xml'
 

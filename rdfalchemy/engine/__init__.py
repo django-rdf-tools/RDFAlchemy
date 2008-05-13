@@ -37,6 +37,11 @@ def create_engine(url='', identifier="", create=False):
         db = ConjunctiveGraph('Sleepycat',identifier=identifier)
         openstr = os.path.abspath(os.path.expanduser(url[12:]))
         db.open(openstr,create=create)
+    elif url.lower().startswith('sqlite://'):
+        from rdflib import ConjunctiveGraph
+        db = ConjunctiveGraph('SQLite',identifier=identifier)
+        openstr = os.path.abspath(os.path.expanduser(url[9:]))
+        db.open(openstr,create=create)
     elif url.lower().startswith('zodb://'):
         import ZODB
         import transaction
@@ -84,8 +89,8 @@ def engine_from_config(configuration, prefix='rdfalchemy.', **kwargs):
                  for key in configuration 
                   if key.startswith(prefix)])
 
-    opts.update(kwargs)
-    url = options.pop('url')
+    options.update(kwargs)
+    url = options.pop('dburi')
     return create_engine(url, **options)
 
     

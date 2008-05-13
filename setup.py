@@ -19,6 +19,11 @@ setup(
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
     keywords = "RDF SPARQL",
+    entry_points = {
+        'console_scripts': [
+            'sparql = rdfalchemy.sparql.script:main',
+        ],
+    },
     platforms = ["any"],
     classifiers = ["Programming Language :: Python",
                    "License :: OSI Approved :: BSD License",
