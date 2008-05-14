@@ -8,17 +8,24 @@ Copyright (c) 2008 Openvest.
 BSD License.
 """
 from rdfalchemy.sparql import SPARQLGraph
-
+from rdfalchemy import __version__
 import sys
 import re
-import getopt
+import optparse
 
 
-help_message = '''
-The help message goes here.
-'''
+usage = 'usage: sparql [options] [endpointURL] query_file'
+version = 'version: sparql '+__version__
+
+optparser = optparse.OptionParser(usage=usage, version=version)
+optparser.add_option('-q','--fin',help='Read query from file (defaults to stdin)')
+optparser.add_option('-o','--fout',help='output file name (defaluts to stdout)')
+optparser.add_option('-u','--url',help='url of the sparql endpoint')
+optparser.add_option('-t','--format',type='choice',choices=['xml','json','brtr'],help="format to return one of: ['xml','json','brtr']")
+optparser.set_defaults(format='xml')
 
 
+# time echo "select * { ?s a ?o } limit 2" | sparql -t xml -u $SPARQL1 - | xsltproc xml-to-html.xsl -
 class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -30,28 +37,18 @@ def main(url=None):
         output = ""
         
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "hu:o:t:v", ["help", "output=","url=", "format="])
-        except getopt.error, msg:
-            raise Usage(msg)
+            opts, args = optparser.parse_args()
+        except LookupError:
+            optparser.print_help()
             
-    
-        # option processing
-        for option, value in opts:
-            if option == "-v":
-                verbose = True
-            if option in ("-h", "--help"):
-                raise Usage(help_message)
-            if option in ("-o", "--output"):
-                output = value
-            if option in ("-t","--format"):
-                resultMethod = value
-            if option in ("-u", "--url"):
-                url = value
 
-        if len(args) > 1:
-            Usage("you must give at most one filename.")
-        fname = len(args) and args[-1] or '-'
+        if len(args) < 1:
+            Usage('you must give at filename to read the query from..."-" signials stdin')
+        elif len(args) > 2:
+            Usage('too many args')
         
+            
+        fname = args[-1]
         if fname == '-':
             stream = sys.stdin
         else:
@@ -59,18 +56,20 @@ def main(url=None):
             
         query = stream.read()
         
-        if not output:
-            output = sys.stdout
-        else:
-            output = open(output)
-        
-        if not url:
+        #output = opt.get.fileOut or sys.stdout
+        if not opts.url:
             try:
                 url =  re.search(r'(?:^|\n) *# *--url=([^ \s\n]+)',query).groups()[0]
             except:
                 raise ValueError, "Need a url for the endpoint"
+        else: 
+            url = opts.url
+        if not opts.fout:
+            output = sys.stdout
+        else:
+            output = open(fout,"w")
 
-        result = SPARQLGraph(url).query(query,resultMethod = "xml",rawResults=True)
+        result = SPARQLGraph(url).query(query,resultMethod = opts.format ,rawResults=True)
         print >>output, result.read()
 
             

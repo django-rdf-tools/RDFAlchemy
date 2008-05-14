@@ -185,8 +185,11 @@ class rdfSubject(object):
     def ClassInstances(cls):
         """return a generator for instances of this rdf:type
         you can look in MyClass.rdf_type to see the predicate being used"""
+        beenthere = set([])
         for i in cls.db.subjects(RDF.type, cls.rdf_type):
-            yield cls(i)
+            if not i in beenthere:
+                yield cls(i)
+                beenthere.add(i)
 
     @classmethod
     def GetRandom(cls):

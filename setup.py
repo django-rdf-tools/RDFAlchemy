@@ -5,7 +5,7 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
-__version__="0.2b2"
+from rdfalchemy import __version__
 
 setup(
     name='RDFAlchemy',
@@ -22,7 +22,10 @@ setup(
     entry_points = {
         'console_scripts': [
             'sparql = rdfalchemy.sparql.script:main',
-        ],
+            ],
+        'paste.paster_command' : [
+            'rdfSubject = rdfalchemy.commands:rdfSubjectCommand',
+            ],
     },
     platforms = ["any"],
     classifiers = ["Programming Language :: Python",
@@ -43,7 +46,8 @@ Allows access to:
       * Sesame_ Repositories
       * SPARQL_ endpoints
   
-Provides intuitive access to RDF values by accessing predicate values through dot notation.    
+Provides intuitive access to RDF values by accessing predicate values 
+through dot notation. ::    
 
 
   ov = Namespace('http://owl.openvest.org/2005/10/Portfolio#')

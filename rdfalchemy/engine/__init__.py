@@ -80,7 +80,7 @@ def engine_from_config(configuration, prefix='rdfalchemy.', **kwargs):
     """Create a new Engine instance using a configuration dictionary.
     
     :param configuration: a dictionary, typically produced from a config file 
-    where keys are prefixed, such as `rdfalchemy.url`, etc.  
+    where keys are prefixed, such as `rdfalchemy.dburi`, etc.  
     :param prefix: indicates the prefix to be searched for.
     
     """

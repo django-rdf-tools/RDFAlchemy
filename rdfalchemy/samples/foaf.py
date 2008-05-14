@@ -13,14 +13,14 @@ FOAF=Namespace("http://xmlns.com/foaf/0.1/" )
 
 class Agent(rdfSubject):
     rdf_type = FOAF.Agent
-    name = rdfSingle(FOAF.name)
-    mbox = rdfSingle(FOAF.mbox)
+    name   = rdfSingle(FOAF.name)
+    mbox   = rdfSingle(FOAF.mbox)
     openid = rdfSingle(FOAF.openid)    
 
 
 class Person(Agent):
     rdf_type = FOAF.Person
-    first = rdfSingle(FOAF.firstName,'first')
-    last = rdfSingle(FOAF.surname,'last')
-    givenname = rdfSingle(FOAF.givenname,'first')
-    surname = rdfSingle(FOAF.surname,'last')
+    first     = rdfSingle(FOAF.firstName)
+    last      = rdfSingle(FOAF.surname)
+    givenname = rdfSingle(FOAF.givenname)
+    surname   = rdfSingle(FOAF.surname)
