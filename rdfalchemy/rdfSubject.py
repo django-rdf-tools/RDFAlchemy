@@ -201,6 +201,15 @@ class rdfSubject(object):
     def __repr__(self):
         return """%s('%s')""" % (self.__class__.__name__, self.n3())
     
+    def __hash__(self):
+        return hash("ranD0Mi$h_"+self.n3())
+    
+    def __cmp__(self, other):
+        return cmp(self.n3(), other.n3())
+    
+    def __repr__(self):
+        return """%s('%s')""" % (self.__class__.__name__, self.n3())
+    
     def __getitem__(self, pred):
         #log.debug("Getting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Getting with __getitem__ %s for %s"%(pred,self.n3()))
@@ -319,10 +328,9 @@ class rdfSubject(object):
         print " "
 
     def md5_term_hash(self):
+        """Not sure what good this method is but it's defined for
+        rdflib.Identifiers so it's here for now"""
         return self.resUri.md5_term_hash()
-        #d = md5(str(self))
-        #d.update("R")
-        #return d.hexdigest()
         
     
 

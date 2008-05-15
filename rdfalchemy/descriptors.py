@@ -23,7 +23,7 @@ log=logging.getLogger(__name__)
 #log.setLevel(logging.DEBUG)
 #log.addHandler(console)
 
-RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#") # need the RDF['_%d'%i] ability
 
 # helper function, might be somewhere in rdflib I need to look for it there
 def getList(sub, pred=None, db=None):

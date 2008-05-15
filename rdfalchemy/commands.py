@@ -1,6 +1,7 @@
 from paste.script.command import Command, BadCommand
 import sys
 from rdfalchemy import rdfSubject, RDF, RDFS
+from rdfalchemy.rdfsSubject import rdfsClass
 
 class rdfSubjectCommand(Command):
     """Create an rdfSubject subclass with descriptors from an RDF Schema
@@ -39,25 +40,31 @@ class rdfSubjectCommand(Command):
                 rdfSubject.db.load(self.options.schema)
             else:
                 raise NotImplemented('Need to pass in the schema No default yet')
-            
-            def list_qnames():
-                print "qnames that you can import from this schema file:"
-                for s in rdfSubject.db.subjects(RDF.type, RDFS.Class):
-                    print "\t"+rdfSubject.db.qname(s)
                     
+            choices = list(rdfSubject.db.subjects(RDF.type, RDFS.Class))
+            choices.sort()
+            
+            print "qnames that you can import from this schema:"
+            for i, n in enumerate(choices):
+                print "\t[%i] %s" % (i+1,rdfSubject.db.qname(n))
+                
             if self.options.list:
-                list_qnames()
                 return
             
-            name =  self.args and self.args[0] or self.challenge('Enter qname of rdfs:Class to build an rdfSubject for','?list')
-            if name == "?list":
-                list_qnames()
-                name = self.challenge('Enter qname of rdfs:Class to build an rdfSubject for','?cancel')
-            if name == "?cancel":
+            name = self.challenge('Enter (a)ll,(q)uit or the number ot build for','q')
+            if name.startswith('q'):
                 return
+            elif name.startswith('a'):
+                raise NotImplemented("(a)ll option not implented yet")
+            else:
+                try:
+                    name = choices[int(name)-1]
+                except Exception, e:
+                    raise e
+                    
+            c=rdfsClass("<%s>"%name)
+            print c._emit_rdfSubject()
                 
-
-            print "Build for "+name
 
             # Setup the controller
         except BadCommand, e:
