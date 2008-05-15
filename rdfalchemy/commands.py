@@ -1,7 +1,10 @@
 from paste.script.command import Command, BadCommand
 import sys
-from rdfalchemy import rdfSubject, RDF, RDFS
+from rdfalchemy import rdfSubject, RDF, RDFS, Namespace, URIRef
 from rdfalchemy.rdfsSubject import rdfsClass
+
+OWL = Namespace("http://www.w3.org/2002/07/owl#")
+
 
 class rdfSubjectCommand(Command):
     """Create an rdfSubject subclass with descriptors from an RDF Schema
@@ -20,7 +23,7 @@ class rdfSubjectCommand(Command):
     Do not expect to be able to use the raw results.
     """
     summary = __doc__.splitlines()[0]
-    usage = '\npasteR %s\n%s' % (__name__, __doc__)
+    usage = '\npaster %s\n%s' % (__name__, __doc__)
 
     min_args = 0
     max_args = 1
@@ -28,20 +31,22 @@ class rdfSubjectCommand(Command):
     
     parser = Command.standard_parser(simulate=True)
     parser.add_option('-s','--schema',help='file name or url of rdfSchema for this class')
+    parser.add_option('-o','--fout',help='output file name default: stdout (e.g. ../MyRdfModel.py)')
     parser.add_option('-l','--list', action='store_true', help='list valid instances of `owl:Class` in the schema file')    
-    parser.add_option('--no-write',
-                      action='store_true',
-                      help="Don't create the file; just copy to stdout")
 
     def command(self):
         """Main command to create controller"""
         try:
             if self.options.schema:
-                rdfSubject.db.load(self.options.schema)
+                ext = self.options.schema.split('.')[-1]
+                ext = ext in ['n3','nt','ttl','rdf'] and ext or 'rdf'
+                rdfSubject.db.load(self.options.schema,format=ext)
             else:
                 raise NotImplemented('Need to pass in the schema No default yet')
                     
-            choices = list(rdfSubject.db.subjects(RDF.type, RDFS.Class))
+            choices  = filter(lambda x: isinstance(x, URIRef), rdfSubject.db.subjects(RDF.type, RDFS.Class))
+            choices += filter(lambda x: isinstance(x, URIRef), rdfSubject.db.subjects(RDF.type, OWL.Class))
+            choices  = filter(lambda x: not rdfSubject.db.qname(x).startswith('_'), choices)
             choices.sort()
             
             print "qnames that you can import from this schema:"
@@ -63,7 +68,10 @@ class rdfSubjectCommand(Command):
                     raise e
                     
             c=rdfsClass("<%s>"%name)
-            print c._emit_rdfSubject()
+            
+            output = self.options.fout and file(self.options.fout,'w') or sys.stdout
+                
+            print >>output, c._emit_rdfSubject()
                 
 
             # Setup the controller

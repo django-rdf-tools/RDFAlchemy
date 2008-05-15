@@ -3,6 +3,11 @@
 """
 rdfsSubject.py
 
+rdfsSubject is similar to rdfsSubject but includes more
+processing and *magic* based on an `RDF Schema`__
+
+__ ::http://www.w3.org/TR/rdf-schema/
+
 Created by Philip Cooper on 2008-05-14.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
@@ -94,7 +99,7 @@ from rdfalchemy.orm import mapper
 """
             for k,v in self.db.namespaces():
                 visitedNS[str(v)] = k.upper()
-                src += '%s = Namespace("%s")\n' % (k.upper(),v)
+                src += '%s = Namespace("%s")\n' % (k.upper().replace('-','_'),v)
         else:
             src = ""
         
@@ -103,12 +108,12 @@ from rdfalchemy.orm import mapper
             sns, sloc = mySuper._splitname()
             if ns == sns:
                 src += mySuper._emit_rdfSubject(visitedNS=visitedNS)
-                mySupers.append( sloc )
+                mySupers.append( sloc.replace('-','_') )
                 
                 
                 
         mySupers = ",".join(mySupers) or "rdfsSubject"
-        src += '\nclass %s(%s):\n'%(loc, mySupers)
+        src += '\nclass %s(%s):\n'%(loc.replace('-','_'), mySupers)
         src += '\t"""%s %s"""\n'%(self.label, self.comment)
         src += '\trdf_type = %s["%s"]\n' % (visitedNS[ns],loc)
             
@@ -136,25 +141,47 @@ class rdfsProperty(rdfsSubject):
     range = rdfSingle(RDFS.range)
     subPropertyOf = rdfMultiple(RDFS.subPropertyOf)
     default_descriptor = rdfMultiple  #
+
+#####################################################################
+# Beginings of a OWL package
+
+class owlClass(rdfsClass):
+    """rdfSbject with some RDF Schema addons
+    *Some* inferencing is implied
+    Bleading edge: be careful"""
+    rdf_type = OWL.Class
+
+########################################
+# properties        
+
+class owlFunctionalProperty(rdfsProperty):
+    rdf_type = OWL.FunctionalProperty
+    default_descriptor = rdfSingle
+
+class owlDatatypeProperty(rdfsProperty):
+    rdf_type = OWL.DatatypeProperty
+    range = rdfSingle(RDFS.range, range_type = RDFS.Class)
+    default_descriptor = rdfMultiple
         
+########################################
+# Object properties        
 class owlObjectProperty(rdfsProperty):
     rdf_type = OWL.ObjectProperty
     range = rdfSingle(RDFS.range, range_type = RDFS.Class)
     default_descriptor = rdfMultiple
-        
-class owlDatatypeProperty(rdfsProperty):
-    rdf_type = OWL.DatatypeProperty
-    default_descriptor = rdfMultiple
-        
-class owlFunctionalProperty(rdfsProperty):
-    rdf_type = OWL.FunctionalProperty
-    default_descriptor = rdfSingle
-        
-class owlInverseFunctionalProperty(rdfsProperty):
+
+class owlInverseFunctionalProperty(owlObjectProperty):
     rdf_type = OWL.InverseFunctionalProperty
     default_descriptor = rdfSingle
+                
+class owlSymetricProperty(owlObjectProperty):
+    rdf_type = OWL.SymetricProperty
+    default_descriptor = rdfMultiple
         
-    
+class owlTransitiveProperty(owlObjectProperty):
+    rdf_type = OWL.TransitiveProperty
+    default_descriptor = rdfMultiple
+        
     
 # this maps the return type of subClassOf back to rdfsClass
 mapper()       
