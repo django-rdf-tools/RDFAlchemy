@@ -1,7 +1,7 @@
 from paste.script.command import Command, BadCommand
 import sys
-from rdfalchemy import rdfSubject, RDF, RDFS, Namespace, URIRef
-from rdfalchemy.rdfsSubject import rdfsClass
+from rdfalchemy import  rdfSubject, RDF, RDFS, Namespace, URIRef
+from rdfalchemy.rdfsSubject import rdfsSubject, rdfsClass
 
 OWL = Namespace("http://www.w3.org/2002/07/owl#")
 
@@ -39,7 +39,8 @@ class rdfSubjectCommand(Command):
         try:
             if self.options.schema:
                 ext = self.options.schema.split('.')[-1]
-                ext = ext in ['n3','nt','ttl','rdf'] and ext or 'rdf'
+                ext = ext in ['n3','nt'] and ext or 'xml'
+                print "rdfSubject.db.load('%s',format='%s')" % (self.options.schema, ext)
                 rdfSubject.db.load(self.options.schema,format=ext)
             else:
                 raise NotImplemented('Need to pass in the schema No default yet')
@@ -66,14 +67,12 @@ class rdfSubjectCommand(Command):
                     name = choices[int(name)-1]
                 except Exception, e:
                     raise e
-                    
-            c=rdfsClass("<%s>"%name)
-            
-            output = self.options.fout and file(self.options.fout,'w') or sys.stdout
-                
+
+            c = rdfsClass("<%s>"%name)
+
+            output = self.options.fout and file(self.options.fout,'w') or sys.stdout                
             print >>output, c._emit_rdfSubject()
                 
-
             # Setup the controller
         except BadCommand, e:
             raise BadCommand('An error occurred. %s' % e)

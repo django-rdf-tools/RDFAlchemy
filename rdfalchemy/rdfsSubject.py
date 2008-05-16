@@ -87,7 +87,10 @@ class rdfsClass(rdfsSubject):
         """Procude the text that might be used for a .py file 
         TODO: This code should probably move into the commands module since that's the only place it's used"""
         ns,loc = self._splitname()
-        prefix, qloc = self.db.qname(self.resUri).split(':')
+        try:
+            prefix, qloc = self.db.qname(self.resUri).split(':')
+        except:
+            raise Exception("don't know how do handle a qname like %s" % self.db.qname(self.resUri))
         prefix = prefix.upper()
         
         if not visitedNS:
@@ -149,7 +152,13 @@ class owlClass(rdfsClass):
     """rdfSbject with some RDF Schema addons
     *Some* inferencing is implied
     Bleading edge: be careful"""
-    rdf_type = OWL.Class
+    rdf_type = OWL["Class"]
+    disjointWith = rdfMultiple(OWL["disjointWith"], range_type = OWL["Class"])
+    equivalentClass = rdfMultiple(OWL["equivalentClass"], range_type = OWL["Class"])
+    intersectionOf = rdfMultiple(OWL["intersectionOf"])
+    unionOf = rdfMultiple(OWL["unionOf"])
+    complementOf = rdfMultiple(OWL["complementOf"], range_type = OWL["Class"])
+
 
 ########################################
 # properties        
@@ -168,6 +177,7 @@ class owlDatatypeProperty(rdfsProperty):
 class owlObjectProperty(rdfsProperty):
     rdf_type = OWL.ObjectProperty
     range = rdfSingle(RDFS.range, range_type = RDFS.Class)
+    inverseOf = rdfSingle(OWL.inverseOf, range_type = OWL.ObjectProperty)
     default_descriptor = rdfMultiple
 
 class owlInverseFunctionalProperty(owlObjectProperty):
