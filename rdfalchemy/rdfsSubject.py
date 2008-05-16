@@ -81,7 +81,10 @@ class rdfsClass(rdfsSubject):
 
     @property
     def properties(self):
-        return list(rdfsProperty.filter_by(domain=self.resUri))
+        # this doesn't get the rdfsProperty subclasses
+        # return list(rdfsProperty.filter_by(domain=self.resUri))
+        return [x for x in rdfsProperty.ClassInstances() if x.domain == self]
+        
     
     def _emit_rdfSubject(self, visitedNS={}, visitedClass=set([])):
         """Procude the text that might be used for a .py file 
