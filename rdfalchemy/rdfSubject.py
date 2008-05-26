@@ -131,7 +131,7 @@ class rdfSubject(object):
             the keyword should map to an rdf predicate
             that is of type owl:InverseFunctional"""
         if len(kwargs) != 1:
-            raise ValueError("get_by wanted eaactly 1 but got  %i args\nMaybe you wanted filter_by"%(len(kwargs)))
+            raise ValueError("get_by wanted exactly 1 but got  %i args\nMaybe you wanted filter_by"%(len(kwargs)))
         key,value = kwargs.items()[0]
         if isinstance(value, URIRef) or isinstance(value,BNode) or isinstance(value,Literal):
             o = value
@@ -194,9 +194,9 @@ class rdfSubject(object):
     @classmethod
     def GetRandom(cls):
         """for develoment just returns a random instance of this class"""
-        from random import randint
+        from random import choice
         xii=list(cls.ClassInstances())
-        return xii[randint(0,len(xii)-1)]
+        return choice(xii)
         
     def __repr__(self):
         return """%s('%s')""" % (self.__class__.__name__, self.n3())

@@ -14,7 +14,7 @@ from copy import copy
 
 import logging
 
-__all__=["rdfSingle","rdfMultiple","rdfList","rdfContainer"]
+__all__=["rdfSingle","rdfMultiple","rdfList","rdfContainer","owlTransitive"]
 
 #console = logging.StreamHandler()
 #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
@@ -81,6 +81,7 @@ def value2object(value):
 # define a series of descriptors
 # each one will map an attribute of a class (derived from rdfObjet) to a predicate 
 ##################################################################################
+
 
 class rdfAbstract(object):
     """Abstract base class for descriptors
@@ -166,19 +167,14 @@ class rdfMultiple(rdfAbstract):
         if self.name in obj.__dict__:
             return obj.__dict__[self.name]
         val=[o for o in obj.db.objects(obj.resUri, self.pred)]
+        log.debug("Geting with descriptor %s for %s"%(self.pred,obj.n3()))
         # check to see if this is a Container or Collection
         # if so, return collection as a list
         if len(val) == 1 \
            and (obj.db.value(o,RDF.first) or obj.db.value(o,RDF._1)): 
                   val=getList(obj, self.pred)
         val=[(isinstance(v, (BNode,URIRef)) and self.range_class(v) or v.toPython()) for v in val]
-        # ?? FIXME why does the debug statement show up twice??
-        #setattr(obj, self.name, val) changed to next line 01/31/08  was calling twice
         obj.__dict__[self.name]= val
-        try:
-            log.debug("Geting %s for %s"%(obj.db.qname(self.pred),obj.db.qname(obj.resUri)))
-        except:
-            log.debug("Geting %s for %s"%(self.pred.n3(),obj.n3()))
         return val
 
     def __set__(self, obj, newvals):
@@ -200,11 +196,55 @@ class rdfMultiple(rdfAbstract):
                 log.debug("adding: %s, %s, %s"%(obj.n3(),self.pred,value))
         obj.__dict__[self.name] = copy(newvals)
         
+class rdfBest(rdfSingle):
+    '''This is a Discriptor  that returns one value that is the 
+    "best" result out of possible multiple matches
+    
+    returns a single value or None
+    
+    It is the responsibility of the select_fun to return a default
+    like choices[0] if no "Best" is found'''
+    
+    def __init__(self, pred, select_fun = None, cacheName=None, range_type=None ):
+        if select_fun:
+            self.select_fun = select_fun
+        super(rdfMultiple, self).__init__(pred, range_type)
+        
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        if self.name in obj.__dict__:
+            return obj.__dict__[self.name]
+        log.debug("Geting with descriptor %s for %s"%(self.pred,obj.n3()))
+        vals=[o for o in obj.db.objects(obj.resUri, self.pred)]
+        if vals:
+            val = self.select_fun(vals)
+            val = isinstance(val, (BNode,URIRef)) and self.range_class(val) or val.toPython()
+        else:
+            val = None
+        obj.__dict__[self.name]= val
+        return val
+
+class rdfLocale(rdfBest):
+    '''This is like rdfBest with a predefined select_fun to select 
+    from multiple choices like labels or comments and select the one
+    with the correct locale'''    
+    def __init__(self, pred, lang, cacheName=None):
+        self.lang = lang
+        cacheNameLang = cacheName or ("%s@%s" % (pred, lang))
+        super(rdfBest, self).__init__(pred,cacheName = cacheNameLang)
+
+    def select_fun(self, choices):
+        for x in choices:
+            if isinstance(x,Literal) and x.language==self.lang:
+                return x
+        return choices[0]
 
 class rdfList(rdfMultiple):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)
        `__set__` will set the predicate as a RDF List'''
+       
     def __init__(self, pred, range_type=None):
         super(rdfMultiple, self).__init__(pred, range_type)
         
@@ -272,7 +312,15 @@ class rdfList(rdfMultiple):
 class rdfContainer(rdfMultiple):
     '''This is a Discriptor    
        Expects to return a list of values (could be a list of one)
+       
+       container_type in `__init__` should be one of 
+
+               * rdf:Seq
+               * rdf:Bag
+               * rdf:Alt
+               
        `__set__` will set the predicate as a RDF Container type (defaults to rdf:Seq)'''
+
     def __init__(self, pred,  range_type=None, container_type="http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq"):
         super(rdfMultiple, self).__init__(pred,  range_type)
         self.container_type = container_type
@@ -319,4 +367,21 @@ class rdfContainer(rdfMultiple):
         for i in range(len(newvals)):
             obj.db.add((seq, RDF['_%i'%(i+1)], value2object(newvals[i])))
         obj.__dict__[self.name] = copy(newvals)
+        
+#################################################################################
+# More owl-ish and rdfs-ish descriptors
 
+class owlTransitive(rdfMultiple):
+    """owlTransitive is a descriptor based on a transitive predicate
+    The predicate should be of type owl:TransitiveProperty
+    """
+        
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        if self.name in obj.__dict__:
+            return obj.__dict__[self.name]
+        log.debug("Geting with descriptor %s for %s"%(self.pred,obj.n3()))
+        val=[self.range_class(o) for o in obj.db.transitive_objects(obj.resUri, self.pred)]
+        obj.__dict__[self.name]= val
+        return val

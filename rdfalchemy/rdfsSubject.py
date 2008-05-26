@@ -12,14 +12,18 @@ Created by Philip Cooper on 2008-05-14.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
-from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple, RDF, RDFS, Namespace
-from rdfalchemy.orm import mapper, allsub
+from rdfalchemy import  rdfSubject, RDF, RDFS, Namespace
+from descriptors import *
+from orm import mapper, allsub
+
+from weakref import WeakValueDictionary
 import re
 
 OWL = Namespace("http://www.w3.org/2002/07/owl#")
 
 _all_ = ['rdfsSubject','rdfsClass','rdfsProperty',
          'owlObjectProperty','owlDatatypeProperty',
+         'owlSymetricProperty', 'owlTransitiveProperty'       
          'owlFunctionalProperty','owlInverseFunctionalProperty']
 
 
@@ -27,6 +31,7 @@ re_ns_n = re.compile(r'(.*[/#])(.*)')
 
 
 class rdfsSubject(rdfSubject):
+    __weakrefs = WeakValueDictionary()
     
     def _splitname(self):
         return re.match(r'(.*[/#])(.*)',self.resUri).groups()
@@ -83,7 +88,10 @@ class rdfsClass(rdfsSubject):
     def properties(self):
         # this doesn't get the rdfsProperty subclasses
         # return list(rdfsProperty.filter_by(domain=self.resUri))
+        # TODO: why iterate all rdfsProperty subclasses
+        #       try self.db.subjects(RDFS.domain,self.resUri)
         return [x for x in rdfsProperty.ClassInstances() if x.domain == self]
+        
         
     
     def _emit_rdfSubject(self, visitedNS={}, visitedClass=set([])):
@@ -193,8 +201,7 @@ class owlSymetricProperty(owlObjectProperty):
         
 class owlTransitiveProperty(owlObjectProperty):
     rdf_type = OWL.TransitiveProperty
-    default_descriptor = rdfMultiple
-        
+    default_descriptor = owlTransitive
     
 # this maps the return type of subClassOf back to rdfsClass
 mapper()       

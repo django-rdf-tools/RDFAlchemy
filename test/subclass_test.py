@@ -42,10 +42,12 @@ class E(A,C):
 
 
 def subclass_testLen1():
+    "Test these things that are just rdfSubject ... no inferencing"
     assert len(list(A.ClassInstances())) == 2
     assert len(list(B.ClassInstances())) == 2    
     
 def subclass_testLen2():
+    "Test these things that are just rdfSubject ... no inferencing"
     assert len(list(C.ClassInstances())) == 1
     assert len(list(D.ClassInstances())) == 3    
     
@@ -74,10 +76,12 @@ d2 = Ds()
 d3 = Ds()
 
 def ssubclass_testLen1():
+    "Test these things that are rdfSSubject ... with inferencing"
     assert len(list(As.ClassInstances())) == 2, len(list(As.ClassInstances()))
     assert len(list(Bs.ClassInstances())) == 6, len(list(Bs.ClassInstances()))    
     
 def ssubclass_testLen2():
+    "Test these things that are rdfsSubject ... with inferencing"
     assert len(list(Cs.ClassInstances())) == 4, len(list(Cs.ClassInstances()))
     assert len(list(Ds.ClassInstances())) == 3, len(list(Ds.ClassInstances()))    
 
