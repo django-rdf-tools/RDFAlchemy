@@ -43,12 +43,6 @@ class rdfSubject(object):
     """Default graph for access to instances of this type"""
     rdf_type=None
     """rdf:type of instances of this class"""
-## 
-##     def __new__(cls, resUri = None, **kwargs):
-##         obj = object.__new__(cls)
-##         obj.resUri = resUri
-##         return obj.__init__(resUri, **kwargs)
-        
 
     def __init__(self, resUri = None, **kwargs):
         """The constructor tries hard to do return you an rdfSubject
@@ -83,17 +77,6 @@ class rdfSubject(object):
         if kwargs:
             self._set_with_dict(kwargs)
 
-        ## lets get a default namespace for this 
-        ## ??obsolete ???
-        #rdftype = list(self.db.objects(self.resUri, RDF.type))
-        #if len(rdftype)==1:
-        #    self.namespace, trash = re_ns_n.match(rdftype[0]).groups()
-        #    self.namespace=Namespace(self.namespace)
-        #elif isinstance(self.resUri, URIRef):
-        #    ns_n =  re_ns_n.match(self.resUri)
-        #    if ns_n:
-        #        self.namespace, self.name = ns_n.groups()
-        #        self.namespace=Namespace(self.namespace)
                 
     def n3(self):
         """n3 repr of this node"""
@@ -104,7 +87,6 @@ class rdfSubject(object):
     def _getdescriptor(cls, key):
         """__get_descriptor returns the descriptor for the key.
         It essentially cls.__dict__[key] with recursive calls to super"""
-        #log.debug("Getting descriptor for class: %s with key: %s" % (cls,key))
         # NOT SURE if mro is the way to do this or if we should call super or bases?
         for kls in cls.mro():
             if key in kls.__dict__:
@@ -198,9 +180,6 @@ class rdfSubject(object):
         xii=list(cls.ClassInstances())
         return choice(xii)
         
-    def __repr__(self):
-        return """%s('%s')""" % (self.__class__.__name__, self.n3())
-    
     def __hash__(self):
         return hash("ranD0Mi$h_"+self.n3())
     
@@ -211,7 +190,6 @@ class rdfSubject(object):
         return """%s('%s')""" % (self.__class__.__name__, self.n3())
     
     def __getitem__(self, pred):
-        #log.debug("Getting with __getitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Getting with __getitem__ %s for %s"%(pred,self.n3()))
         val=self.db.value(self.resUri, pred)
         if isinstance(val,Literal):
@@ -220,11 +198,8 @@ class rdfSubject(object):
             val=rdfSubject(val) 
         return val
         
-    ## def __setitem__(self,pred,value):
-    ## not even sure if this is a good idea here
         
     def __delitem__(self, pred):
-        #log.debug("Deleting with __delitem__ %s for %s"%(self.db.qname(pred),self.db.qname(self.resUri)))
         log.debug("Deleting with __delitem__ %s for %s"%(pred,self))
         for s,p,o in self.db.triples((self.resUri, pred, None)):
             self.db.remove((s,p,o))
@@ -243,7 +218,6 @@ class rdfSubject(object):
                
         """
         for key,value in kv.items():
-            #item.__class__._getdescriptor('authors').__get__(item, item.__class__)
             descriptor = self.__class__._getdescriptor(key)
             descriptor.__set__(self, value)
         
