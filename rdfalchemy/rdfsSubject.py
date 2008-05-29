@@ -23,7 +23,7 @@ OWL = Namespace("http://www.w3.org/2002/07/owl#")
 
 _all_ = ['rdfsSubject','rdfsClass','rdfsProperty',
          'owlObjectProperty','owlDatatypeProperty',
-         'owlSymetricProperty', 'owlTransitiveProperty'       
+         'owlSymetricProperty', 'owlTransitiveProperty',
          'owlFunctionalProperty','owlInverseFunctionalProperty']
 
 

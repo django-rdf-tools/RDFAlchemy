@@ -31,6 +31,10 @@ def create_engine(url='', identifier="", create=False):
         db = ConjunctiveGraph('MySQL',identifier)
         schema,opts = _parse_rfc1738_args(url)
         openstr= 'db=%(database)s,host=%(host)s,user=%(username)s'%opts
+        if 'password' in opts:
+            openstr += ',password=%(password)s' % opts
+        if 'port' in opts:
+            openstr += ',port=%(port)s' % opts
         db.open(openstr)
     elif url.lower().startswith('sleepycat://'):
         from rdflib import ConjunctiveGraph
