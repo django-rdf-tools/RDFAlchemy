@@ -49,6 +49,7 @@ def create_engine(url='', identifier="", create=False):
     elif url.lower().startswith('zodb://'):
         import ZODB
         import transaction
+        from rdflib import ConjunctiveGraph 
         db = ConjunctiveGraph('ZODB')
         if url.endswith('.fs'):
             from ZODB.FileStorage import FileStorage
