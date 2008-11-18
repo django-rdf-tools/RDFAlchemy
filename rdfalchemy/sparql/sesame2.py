@@ -7,8 +7,6 @@ from rdflib.syntax.parsers.ntriples import NTriplesParser
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 
-from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
-
 import os
 import re
 import simplejson

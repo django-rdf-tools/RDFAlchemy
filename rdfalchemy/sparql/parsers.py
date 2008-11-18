@@ -3,6 +3,8 @@ from rdflib import URIRef , Literal, BNode
 from urllib2 import urlopen, Request, HTTPError
 from struct import unpack
 
+from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
+
 import simplejson
 import logging
 
