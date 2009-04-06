@@ -15,7 +15,7 @@ setup(
     author_email='philip.cooper@openvest.com',
     url="http://www.openvest.com/trac/wiki/RDFAlchemy",
     download_url="http://www.openvest.com/public/downloads/RDFAlchemy-%s.tar.gz"%__version__,
-    install_requires=["rdflib==2.4.0"],
+    install_requires=["rdflib>=2.4.0","rdflib<=2.9.9"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
     keywords = "RDF SPARQL",

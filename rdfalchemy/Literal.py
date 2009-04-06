@@ -36,6 +36,9 @@ try:
     from decimal import Decimal
     bindLiteral(XSD.decimal,Decimal)
     _PythonToXSD.update(dict([(Decimal,(str,XSD.decimal))]))
+except AttributeError:
+    ## rdflib2.4.1 changed  _PythonToXSD from a dict to a list
+    _PythonToXSD.extend([(Decimal,(str,XSD.decimal))]) 
 except:
     pass
     
