@@ -34,12 +34,12 @@ class rdfsSubject(rdfSubject):
     __weakrefs = WeakValueDictionary()
     
     def __new__(cls, resUri = None, **kwargs):
-        class_dict = dict([(str(cl.rdf_type), cl) for cl in allsub(cls) if cl.rdf_type])
-        rdf_type = rdfSubject(resUri)[RDF.type]
-        subclass = rdf_type and class_dict.get(rdf_type.resUri) or cls
-        obj = subclass.__new__(resUri, **kwargs)
-        obj.__init__(resUri, **kwargs)
-        return obj
+		class_dict = dict([(str(cl.rdf_type), cl) for cl in allsub(cls) if cl.rdf_type])
+		rdf_type = rdfSubject(resUri)[RDF.type]
+		subclass = rdf_type and class_dict.get(str(rdf_type.resUri)) or cls
+		obj = rdfSubject.__new__(subclass, resUri, **kwargs)
+		obj.__init__(resUri, **kwargs)
+		return obj
 
     
     def _splitname(self):

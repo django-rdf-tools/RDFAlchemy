@@ -1,6 +1,7 @@
 from rdflib import URIRef, BNode, Namespace, RDF, RDFS
 from Literal import Literal
 from rdfSubject import rdfSubject
+from rdfsSubject import rdfsSubject
 from descriptors import *
 
 from engine import create_engine, engine_from_config
