@@ -63,6 +63,8 @@ class rdfSubject(object):
                 self.db.add((self.resUri,RDF.type,self.rdf_type))
         elif isinstance(resUri, (BNode, URIRef)): # user the identifier passed in
             self.resUri=resUri
+            if self.rdf_type and not list(self.db.triples((self.resUri,RDF.type,self.rdf_type))):
+                self.db.add((self.resUri,RDF.type,self.rdf_type))
         elif isinstance(resUri, rdfSubject):      # use the resUri of the subject passed in 
             self.resUri=resUri.resUri 
             self.db=resUri.db
@@ -115,7 +117,7 @@ class rdfSubject(object):
         if len(kwargs) != 1:
             raise ValueError("get_by wanted exactly 1 but got  %i args\nMaybe you wanted filter_by"%(len(kwargs)))
         key,value = kwargs.items()[0]
-        if isinstance(value, URIRef) or isinstance(value,BNode) or isinstance(value,Literal):
+        if isinstance(value, (URIRef,BNode,Literal)):
             o = value
         else:
             o = Literal(value)

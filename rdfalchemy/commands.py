@@ -43,7 +43,7 @@ class rdfSubjectCommand(Command):
                 print "rdfSubject.db.load('%s',format='%s')" % (self.options.schema, ext)
                 rdfSubject.db.load(self.options.schema,format=ext)
             else:
-                raise NotImplemented('Need to pass in the schema No default yet')
+                raise NotImplementedError('Need to pass in the schema No default yet')
                     
             choices  = filter(lambda x: isinstance(x, URIRef), rdfSubject.db.subjects(RDF.type, RDFS.Class))
             choices += filter(lambda x: isinstance(x, URIRef), rdfSubject.db.subjects(RDF.type, OWL.Class))
@@ -61,7 +61,7 @@ class rdfSubjectCommand(Command):
             if name.startswith('q'):
                 return
             elif name.startswith('a'):
-                raise NotImplemented("(a)ll option not implented yet")
+                raise NotImplementedError("(a)ll option not implented yet")
             else:
                 try:
                     name = choices[int(name)-1]
