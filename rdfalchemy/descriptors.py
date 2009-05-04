@@ -245,8 +245,8 @@ class rdfList(rdfMultiple):
        Expects to return a list of values (could be a list of one)
        `__set__` will set the predicate as a RDF List'''
        
-    def __init__(self, pred, range_type=None):
-        super(rdfMultiple, self).__init__(pred, range_type)
+    def __init__(self, pred, cacheName=None, range_type=None):
+        super(rdfMultiple, self).__init__(pred, cacheName, range_type)
         
     def __get__(self, obj, cls):
         if obj is None:
@@ -322,7 +322,7 @@ class rdfContainer(rdfMultiple):
        `__set__` will set the predicate as a RDF Container type (defaults to rdf:Seq)'''
 
     def __init__(self, pred,  range_type=None, container_type="http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq"):
-        super(rdfMultiple, self).__init__(pred,  range_type)
+        super(rdfMultiple, self).__init__(pred,  range_type=range_type)
         self.container_type = container_type
         
         
