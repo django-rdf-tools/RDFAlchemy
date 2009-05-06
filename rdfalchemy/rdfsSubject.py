@@ -12,7 +12,8 @@ Created by Philip Cooper on 2008-05-14.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
-from rdfalchemy import  rdfSubject, RDF, RDFS, Namespace
+from rdfalchemy import  rdfSubject, RDF, RDFS, Namespace, BNode, URIRef
+from rdflib.Identifier import Identifier
 from descriptors import *
 from orm import mapper, allsub
 
@@ -30,17 +31,54 @@ _all_ = ['rdfsSubject','rdfsClass','rdfsProperty',
 re_ns_n = re.compile(r'(.*[/#])(.*)')
 
 
-class rdfsSubject(rdfSubject):
+class rdfsSubject(rdfSubject, Identifier):
     __weakrefs = WeakValueDictionary()
     
-    def __new__(cls, resUri = None, **kwargs):
-		class_dict = dict([(str(cl.rdf_type), cl) for cl in allsub(cls) if cl.rdf_type])
-		rdf_type = rdfSubject(resUri)[RDF.type]
-		subclass = rdf_type and class_dict.get(str(rdf_type.resUri)) or cls
-		obj = rdfSubject.__new__(subclass, resUri, **kwargs)
-		obj.__init__(resUri, **kwargs)
-		return obj
+    def __new__(cls, resUri = None, schemaGraph=None, **kwargs):
+        if not resUri or isinstance(resUri, BNode) or issubclass(cls, BNode):  # create a bnode
+            obj = BNode.__new__(cls, resUri)
+            obj._nodetype = BNode
+        elif isinstance(resUri, URIRef) or issubclass(cls, URIRef): # user the identifier passed in
+            obj = URIRef.__new__(cls,resUri)
+            obj._nodetype = URIRef            
+        elif isinstance(resUri, rdfSubject):      # use the resUri of the subject passed in 
+            obj= rdfSubject.__new__(cls, resUri)
+        elif isinstance(resUri, (str, unicode)):  # create one from a <uri> or _:bnode string
+            if resUri[0]=="<" and resUri[-1]==">":
+                obj=URIRef.__new__(cls, resUri[1:-1])
+                obj._nodetype = URIRef                            
+            elif resUri.startswith("_:"):
+                obj=BNode.__new__(cls, resUri[2:])
+                obj._nodetype = BNode                                            
+        else:
+            raise AttributeError("cannot construct rdfSubject from %s"%(str(resUri)))
+        
+        if resUri:
+            #raise 'hi'
+            rdf_type = obj[RDF.type]
+            if rdf_type:
+                class_dict = dict([(str(cl.rdf_type), cl) for cl in allsub(cls) if cl.rdf_type])
+                subclass = class_dict.get(str(rdf_type.resUri),cls)
+            else:
+                subclass = cls
+        else:
+            subclass = cls
+        
+        newobj = super(rdfSubject,obj).__new__(subclass, resUri)#, **kwargs)
+        newobj._nodetype = obj._nodetype
+        newobj.__init__(resUri, **kwargs)
+        return newobj
 
+    def __init__(self, resUri = None, **kwargs):
+        if not self[RDF.type] and self.rdf_type:
+            self.db.add((self.resUri,RDF.type,self.rdf_type))
+        if kwargs:
+            self._set_with_dict(kwargs)
+            
+            
+    @property
+    def resUri(self):
+        return self._nodetype(unicode(self))
     
     def _splitname(self):
         return re.match(r'(.*[/#])(.*)',self.resUri).groups()
