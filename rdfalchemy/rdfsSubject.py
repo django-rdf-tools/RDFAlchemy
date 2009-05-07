@@ -17,6 +17,16 @@ from rdflib.Identifier import Identifier
 from descriptors import *
 from orm import mapper, allsub
 
+import logging
+#console = logging.StreamHandler()
+#formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+#console.setFormatter(formatter)
+
+log=logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+#log.addHandler(console)
+
+
 from weakref import WeakValueDictionary
 import re
 
@@ -32,7 +42,7 @@ re_ns_n = re.compile(r'(.*[/#])(.*)')
 
 
 class rdfsSubject(rdfSubject, Identifier):
-    __weakrefs = WeakValueDictionary()
+    _weakrefs = WeakValueDictionary()
     
     def __new__(cls, resUri = None, schemaGraph=None, **kwargs):
         if not resUri or isinstance(resUri, BNode) or issubclass(cls, BNode):  # create a bnode
@@ -53,8 +63,10 @@ class rdfsSubject(rdfSubject, Identifier):
         else:
             raise AttributeError("cannot construct rdfSubject from %s"%(str(resUri)))
         
+		# At this point we have an obj to return...but we might want to look deeper
+		# if there is an RDF:type entry on the Graph, find the mapped subclass and return
+		# an object of that new type
         if resUri:
-            #raise 'hi'
             rdf_type = obj[RDF.type]
             if rdf_type:
                 class_dict = dict([(str(cl.rdf_type), cl) for cl in allsub(cls) if cl.rdf_type])
@@ -64,9 +76,18 @@ class rdfsSubject(rdfSubject, Identifier):
         else:
             subclass = cls
         
+		# improve this do do some kind of hash with classname??
+		# this uses _weakrefs to allow us to return an existing object
+		# rather than copies 
+        md5id = obj.md5_term_hash()
+        newobj = rdfsSubject._weakrefs.get(md5id,None)
+        log.warn("looking for weakref %s found %s",md5id,newobj)
+        if newobj:
+            return newobj
         newobj = super(rdfSubject,obj).__new__(subclass, resUri)#, **kwargs)
+        log.warn("add a weakref %s", newobj)
         newobj._nodetype = obj._nodetype
-        newobj.__init__(resUri, **kwargs)
+        rdfsSubject._weakrefs[newobj.md5_term_hash()] = newobj
         return newobj
 
     def __init__(self, resUri = None, **kwargs):

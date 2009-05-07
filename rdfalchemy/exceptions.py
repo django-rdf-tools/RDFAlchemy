@@ -2,6 +2,10 @@ class RDFAlchemyError(Exception):
     """Generic error class."""
 
 
+class RDFAbstractClassError(RDFAlchemyError):
+    """Cannot generate instances of Abstract Classes"""
+
+
 class SPARQLError(Exception):
     """Base SPARQL Error"""
 
