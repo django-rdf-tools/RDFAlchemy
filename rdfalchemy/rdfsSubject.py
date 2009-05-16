@@ -18,13 +18,9 @@ from descriptors import *
 from orm import mapper, allsub
 
 import logging
-#console = logging.StreamHandler()
-#formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-#console.setFormatter(formatter)
 
 log=logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-#log.addHandler(console)
 
 
 from weakref import WeakValueDictionary
@@ -52,7 +48,8 @@ class rdfsSubject(rdfSubject, Identifier):
             obj = URIRef.__new__(cls,resUri)
             obj._nodetype = URIRef            
         elif isinstance(resUri, rdfSubject):      # use the resUri of the subject passed in 
-            obj= rdfSubject.__new__(cls, resUri)
+            obj= type(resUri.resUri).__new__(cls, resUri.resUri)
+            obj._nodetype = type(resUri.resUri)
         elif isinstance(resUri, (str, unicode)):  # create one from a <uri> or _:bnode string
             if resUri[0]=="<" and resUri[-1]==">":
                 obj=URIRef.__new__(cls, resUri[1:-1])
@@ -81,11 +78,11 @@ class rdfsSubject(rdfSubject, Identifier):
 		# rather than copies 
         md5id = obj.md5_term_hash()
         newobj = rdfsSubject._weakrefs.get(md5id,None)
-        log.warn("looking for weakref %s found %s",md5id,newobj)
+        log.info("looking for weakref %s found %s",md5id,newobj)
         if newobj:
             return newobj
         newobj = super(rdfSubject,obj).__new__(subclass, resUri)#, **kwargs)
-        log.warn("add a weakref %s", newobj)
+        log.info("add a weakref %s", newobj)
         newobj._nodetype = obj._nodetype
         rdfsSubject._weakrefs[newobj.md5_term_hash()] = newobj
         return newobj
