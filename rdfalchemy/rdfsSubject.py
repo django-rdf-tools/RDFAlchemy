@@ -81,7 +81,7 @@ class rdfsSubject(rdfSubject, Identifier):
         log.info("looking for weakref %s found %s",md5id,newobj)
         if newobj:
             return newobj
-        newobj = super(rdfSubject,obj).__new__(subclass, resUri)#, **kwargs)
+        newobj = super(rdfSubject,obj).__new__(subclass, obj.resUri)#, **kwargs)
         log.info("add a weakref %s", newobj)
         newobj._nodetype = obj._nodetype
         rdfsSubject._weakrefs[newobj.md5_term_hash()] = newobj
