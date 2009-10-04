@@ -125,7 +125,7 @@ class rdfAbstract(object):
 
                     
 class rdfSingle(rdfAbstract):
-    '''This is a Discriptor
+    '''This is a Descriptor
     Takes a the URI of the predicate at initialization
     Expects to return a single item
     on Assignment will set that value to the 
@@ -156,7 +156,7 @@ class rdfSingle(rdfAbstract):
         
    
 class rdfMultiple(rdfAbstract):
-    '''This is a Discriptor    
+    '''This is a Descriptor    
        Expects to return a list of values (could be a list of one)'''
     def __init__(self, pred, cacheName=None, range_type=None):
         super(rdfMultiple, self).__init__(pred, cacheName, range_type)
@@ -197,7 +197,7 @@ class rdfMultiple(rdfAbstract):
         obj.__dict__[self.name] = copy(newvals)
         
 class rdfBest(rdfSingle):
-    '''This is a Discriptor  that returns one value that is the 
+    '''This is a Descriptor  that returns one value that is the 
     "best" result out of possible multiple matches
     
     returns a single value or None
@@ -241,7 +241,7 @@ class rdfLocale(rdfBest):
         return choices[0]
 
 class rdfList(rdfMultiple):
-    '''This is a Discriptor    
+    '''This is a Descriptor    
        Expects to return a list of values (could be a list of one)
        `__set__` will set the predicate as a RDF List'''
        
@@ -310,7 +310,7 @@ class rdfList(rdfMultiple):
 
         
 class rdfContainer(rdfMultiple):
-    '''This is a Discriptor    
+    '''This is a Descriptor    
        Expects to return a list of values (could be a list of one)
        
        container_type in `__init__` should be one of 

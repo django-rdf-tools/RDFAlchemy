@@ -20,7 +20,8 @@ from orm import mapper, allsub
 import logging
 
 log=logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+#log.debug("logger is %s",log.name)
+log.setLevel(logging.INFO)
 
 
 from weakref import WeakValueDictionary
@@ -78,11 +79,11 @@ class rdfsSubject(rdfSubject, Identifier):
 		# rather than copies 
         md5id = obj.md5_term_hash()
         newobj = rdfsSubject._weakrefs.get(md5id,None)
-        log.info("looking for weakref %s found %s",md5id,newobj)
+        log.debug("looking for weakref %s found %s",md5id,newobj)
         if newobj:
             return newobj
         newobj = super(rdfSubject,obj).__new__(subclass, obj.resUri)#, **kwargs)
-        log.info("add a weakref %s", newobj)
+        log.debug("add a weakref %s", newobj)
         newobj._nodetype = obj._nodetype
         rdfsSubject._weakrefs[newobj.md5_term_hash()] = newobj
         return newobj

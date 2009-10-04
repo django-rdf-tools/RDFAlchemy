@@ -37,7 +37,6 @@ re_ns_n = re.compile('(.*[/#])(.*)')
 # define our Base Class for all "subjects" in python 
 ##################################################################################
 
-#class rdfSubject(object):
 class rdfSubject(object):
     db=ConjunctiveGraph()
     """Default graph for access to instances of this type"""
