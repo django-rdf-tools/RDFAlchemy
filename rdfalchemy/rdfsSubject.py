@@ -41,7 +41,7 @@ re_ns_n = re.compile(r'(.*[/#])(.*)')
 class rdfsSubject(rdfSubject, Identifier):
     _weakrefs = WeakValueDictionary()
     
-    def __new__(cls, resUri = None, schemaGraph=None, **kwargs):
+    def __new__(cls, resUri = None, schemaGraph=None, *args, **kwargs):
         if not resUri or isinstance(resUri, BNode) or issubclass(cls, BNode):  # create a bnode
             obj = BNode.__new__(cls, resUri)
             obj._nodetype = BNode
@@ -61,9 +61,9 @@ class rdfsSubject(rdfSubject, Identifier):
         else:
             raise AttributeError("cannot construct rdfSubject from %s"%(str(resUri)))
         
-		# At this point we have an obj to return...but we might want to look deeper
-		# if there is an RDF:type entry on the Graph, find the mapped subclass and return
-		# an object of that new type
+        # At this point we have an obj to return...but we might want to look deeper
+        # if there is an RDF:type entry on the Graph, find the mapped subclass and return
+        # an object of that new type
         if resUri:
             rdf_type = obj[RDF.type]
             if rdf_type:
@@ -74,9 +74,9 @@ class rdfsSubject(rdfSubject, Identifier):
         else:
             subclass = cls
         
-		# improve this do do some kind of hash with classname??
-		# this uses _weakrefs to allow us to return an existing object
-		# rather than copies 
+        # improve this do do some kind of hash with classname??
+        # this uses _weakrefs to allow us to return an existing object
+        # rather than copies 
         md5id = obj.md5_term_hash()
         newobj = rdfsSubject._weakrefs.get(md5id,None)
         log.debug("looking for weakref %s found %s",md5id,newobj)
