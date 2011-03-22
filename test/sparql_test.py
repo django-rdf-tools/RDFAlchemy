@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: utf-8
 """
 sparql_test.py
@@ -36,16 +35,13 @@ class sparql_testTests(unittest.TestCase):
         assert processed == 'select * where {?s "4.40"^^<http://www.w3.org/2001/XMLSchema#decimal> <OHO>.?ss ?p \n<OHO>}'
         
     def sesame_is_sparql_test(self):
-        url = 'http://www.openvest.com:8080/openrdf-sesame/repositories/Portfolio/'
+        url = 'http://bel-epa.com:8080/openrdf-sesame/repositories/ukppsw01'
         g1 = SesameGraph(url)
         g2 = SPARQLGraph(url)        
         q1 = "select ?s ?p ?o where {?s ?p ?o} limit 1000"
         r1 = set(list(g1.query(q1,resultMethod='xml')))
         r2 = set(list(g2.query(q1,resultMethod='xml')))        
         assert r1==r2
-
-
-
 
 if __name__ == '__main__':
     unittest.main()

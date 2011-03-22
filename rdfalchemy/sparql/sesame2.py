@@ -2,14 +2,20 @@ from rdfalchemy import Literal, BNode, Namespace, URIRef
 from rdfalchemy.sparql import SPARQLGraph, DumpSink
 from rdfalchemy.sparql.parsers import _BRTRSPARQLHandler,_XMLSPARQLHandler,_JSONSPARQLHandler
 
-from rdflib.syntax.parsers.ntriples import NTriplesParser
+try:
+    from rdflib.plugins.parsers.ntriples import NTriplesParser
+except ImportError:
+    from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode
 
 import os
 import re
-import simplejson
+try:
+    import json
+except ImportError:
+    import simplejson
 import logging
 
 __all__=["SesameGraph"]
@@ -37,7 +43,7 @@ class SesameGraph(SPARQLGraph):
         req = Request(self.url+'/namespaces')
         req.add_header('Accept','application/sparql-results+json')
         log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))        
-        ret=simplejson.load(urlopen(req))
+        ret=json.load(urlopen(req))
         bindings=ret['results']['bindings']
         self._namespaces = dict([(b['prefix']['value'],b['namespace']['value']) for b in bindings])
         return self._namespaces
@@ -51,7 +57,7 @@ class SesameGraph(SPARQLGraph):
             pass
         req = Request(self.url+'/contexts')
         req.add_header('Accept','application/sparql-results+json')
-        ret=simplejson.load(urlopen(req))
+        ret=json.load(urlopen(req))
         bindings=ret['results']['bindings']
         self._contexts = [(b['contextID']['value']) for b in bindings]
         return self._contexts

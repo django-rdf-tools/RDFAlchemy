@@ -3,9 +3,13 @@ from rdflib import URIRef , Literal, BNode
 from urllib2 import urlopen, Request, HTTPError
 from struct import unpack
 
-from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
+from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError, \
+    ParseError
 
-import simplejson
+try:
+    import json
+except ImportError:
+    import simplejson
 import logging
 
 __all__=["_JSONSPARQLHandler","_XMLSPARQLHandler","_BRTRSPARQLHandler"]
@@ -46,7 +50,7 @@ class _SPARQLHandler(object):
 class _JSONSPARQLHandler(_SPARQLHandler):
     """Parse the results of a sparql query returned as json.
     
-    Note: this uses simplejson.load which will consume the entire
+    Note: this uses json.load which will consume the entire
     stream before returning any results. The XML handler uses a generator
     type return so it returns the first tuple as soon as it's available 
     *without* having to comsume the entire stream
@@ -54,7 +58,7 @@ class _JSONSPARQLHandler(_SPARQLHandler):
     mimetype = 'application/sparql-results+json'
 
     def parse(self):
-        ret=simplejson.load(self.stream)
+        ret=json.load(self.stream)
         var_names = ret['head']['vars'] 
         bindings = ret['results']['bindings']
         for b in bindings:
@@ -140,6 +144,7 @@ class _BRTRSPARQLHandler(_SPARQLHandler):
         return self.stream.read(l).decode("utf-8")
 
     def parse(self):
+        print(self.stream.read())
         if self.stream.read(4) <> 'BRTR': raise ParseError("First 4 bytes in should be BRTR")
         self.ver = self.readint() # ver of protocol
         self.ncols = self.readint()

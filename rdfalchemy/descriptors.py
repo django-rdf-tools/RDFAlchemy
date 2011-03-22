@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: utf-8
 """
 descriptors.py
@@ -8,7 +7,10 @@ Copyright (c) 2008 Openvest. All rights reserved.
 """
 
 from rdflib import URIRef, BNode, Namespace
-from rdflib.Identifier import Identifier 
+try:
+    from rdflib.term import Identifier
+except ImportError:
+    from rdflib.Identifier import Identifier
 from rdfalchemy import rdfSubject, Literal 
 from copy import copy
 

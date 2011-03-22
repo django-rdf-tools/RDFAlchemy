@@ -1,14 +1,17 @@
 from rdfalchemy.sparql.sesame2 import SesameGraph
 
 url = 'http://www.openvest.com:8080/openrdf-sesame/repositories/Portfolio/'
+url = 'http://localhost:8080/openrdf-sesame/repositories/murray'
+url = 'http://bel-epa.com:8080/openrdf-sesame/repositories/journals'
+
 g = SesameGraph(url)
 
 q1 = "select ?s ?p ?o where {?s ?p ?o} limit 100"
 
 responses = {}
-b = set(list(g.query(q1,resultMethod='brtr')))
 x = set(list(g.query(q1,resultMethod='xml')))
 j = set(list(g.query(q1,resultMethod='json')))
+b = set(list(g.query(q1,resultMethod='brtr')))
 
 print len(x)
 

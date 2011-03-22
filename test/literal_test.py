@@ -1,7 +1,10 @@
 from rdfalchemy import Literal,Namespace
 from datetime import datetime
 from decimal import Decimal
-from rdflib.Literal import bind as bindLiteral  
+try:
+    from rdflib.term import bind as bindLiteral
+except ImportError:
+    from rdflib.Literal import bind as bindLiteral  
 
 import logging
 log = logging.getLogger()
@@ -44,4 +47,5 @@ def toPython_datetime_test():
     d = Literal('2008-02-09 10:46:29', datatype=XSD.dateTime).toPython()
     assert isinstance(d, datetime)
     # test an "almost" iso string
+
     

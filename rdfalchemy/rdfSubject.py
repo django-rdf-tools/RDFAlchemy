@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 rdfalchemy.py - a Simple API for RDF
 
@@ -9,7 +8,10 @@ Requires rdflib <http://www.rdflib.net/> version 2.3 ??.
 
 from rdflib import ConjunctiveGraph
 from rdflib import BNode, Namespace, URIRef, RDF
-from rdflib.Identifier import Identifier 
+try:
+    from rdflib.term import Identifier
+except ImportError:
+    from rdflib.Identifier import Identifier 
 from rdfalchemy.exceptions import RDFAlchemyError
 from rdfalchemy.Literal import Literal
 import re

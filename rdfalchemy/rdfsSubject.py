@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: utf-8
 """
 rdfsSubject.py
@@ -13,7 +12,10 @@ Copyright (c) 2008 Openvest. All rights reserved.
 """
 
 from rdfalchemy import  rdfSubject, RDF, RDFS, Namespace, BNode, URIRef
-from rdflib.Identifier import Identifier
+try:
+    from rdflib.term import Identifier
+except ImportError:
+    from rdflib.Identifier import Identifier
 from descriptors import *
 from orm import mapper, allsub
 

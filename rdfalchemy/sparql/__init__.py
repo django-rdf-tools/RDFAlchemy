@@ -3,7 +3,10 @@ from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError
 from rdfalchemy.sparql.parsers import _XMLSPARQLHandler,_JSONSPARQLHandler
 
 from rdflib import ConjunctiveGraph
-from rdflib.syntax.parsers.ntriples import NTriplesParser
+try:
+    from rdflib.plugins.parsers.ntriples import NTriplesParser
+except ImportError:
+    from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request, HTTPError
 from urllib import urlencode

@@ -9,6 +9,9 @@ class RDFAbstractClassError(RDFAlchemyError):
 class SPARQLError(Exception):
     """Base SPARQL Error"""
 
+class ParseError(Exception):
+    """Base SPARQLResult Error"""
+
 class MalformedQueryError(SPARQLError):
     """Query Syntax Error for SPARQL RDQL etc
     

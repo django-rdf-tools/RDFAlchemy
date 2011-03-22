@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: utf-8
 """
 Literal.py
@@ -7,8 +6,12 @@ Created by Philip Cooper on 2008-02-09.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 from rdflib import Namespace, Literal
-from rdflib.Literal import bind as bindLiteral
-from rdflib.Literal import _PythonToXSD
+try:
+    from rdflib.term import bind as bindLiteral
+    from rdflib.term import _PythonToXSD
+except ImportError:
+    from rdflib.Literal import bind as bindLiteral
+    from rdflib.Literal import _PythonToXSD
 import re
 import logging
 
