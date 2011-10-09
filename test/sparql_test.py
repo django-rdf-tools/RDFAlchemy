@@ -35,10 +35,10 @@ class sparql_testTests(unittest.TestCase):
         assert processed == 'select * where {?s "4.40"^^<http://www.w3.org/2001/XMLSchema#decimal> <OHO>.?ss ?p \n<OHO>}'
         
     def sesame_is_sparql_test(self):
-        url = 'http://bel-epa.com:8080/openrdf-sesame/repositories/ukppsw01'
+        url = 'http://dbpedia.org/sparql'
         g1 = SesameGraph(url)
         g2 = SPARQLGraph(url)        
-        q1 = "select ?s ?p ?o where {?s ?p ?o} limit 1000"
+        q1 = "select distinct ?Concept where {[] a ?Concept} LIMIT 10"
         r1 = set(list(g1.query(q1,resultMethod='xml')))
         r2 = set(list(g2.query(q1,resultMethod='xml')))        
         assert r1==r2

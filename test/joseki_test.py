@@ -1,9 +1,9 @@
 from rdfalchemy.sparql import SPARQLGraph
 
-url = 'http://localhost:2020/books'
+url = 'http://bel-epa.com:8080/joseki/ukpp'
 g = SPARQLGraph(url)
 
-q1 = "select ?s ?p ?o where {?s ?p ?o}"
+q1 = "select ?s ?p ?o where {?s ?p ?o} LIMIT 10"
 
 responses = {}
 x = set(list(g.query(q1,resultMethod='xml')))
