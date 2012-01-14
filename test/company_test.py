@@ -99,4 +99,4 @@ def test_creating():
     assert c4.resUri == BNode('xyz123')
 
 # write out the new n3 file to see the changes 
-c.db.serialize('example-out.n3',format='n3')
+# c.db.serialize('example-out.n3',format='n3')
