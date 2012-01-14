@@ -15,16 +15,13 @@ setup(
     author_email='philip.cooper@openvest.com',
     url="http://www.openvest.com/trac/wiki/RDFAlchemy",
     download_url="http://www.openvest.com/public/downloads/RDFAlchemy-%s.tar.gz"%__version__,
-    install_requires=["rdflib>=3.1.0"],
+    install_requires=["rdflib"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
     keywords = "RDF SPARQL",
     entry_points = {
         'console_scripts': [
             'sparql = rdfalchemy.sparql.script:main',
-            ],
-        'paste.paster_command' : [
-            'rdfSubject = rdfalchemy.commands:rdfSubjectCommand',
             ],
     },
     platforms = ["any"],
@@ -38,7 +35,7 @@ setup(
 developers to use familiar *dot notation* to access and update an rdf triplestore.
     
       * RDFAlchemy is an **ORM** (Object Rdf Mapper) for graph data as:
-      * SQLAlchemy is an **ORM** (Object Relational Mapper) for relalational databases
+      * SQLAlchemy is an **ORM** (Object Relational Mapper) for relational databases
       
 Allows access to:
     
@@ -58,12 +55,12 @@ through dot notation. ::
     cik = rdfSingle(ov.secCik)
     companyName = rdfSingle(ov.companyName)
   
-  c = Company.get_by(symbol = 'IBM')
-  print "%s has an SEC symbol of %s" % (c.companyName, c.cik)
+  c = Company.query.get_by(symbol = 'IBM')
+  print("%s has an SEC symbol of %s" % (c.companyName, c.cik))
 
 Includes advanced descriptors for read/write access to lists and collections.
       
-.. _rdflib: http://rdflib.net
+.. _rdflib: http://code.google.com/p/rdflib
 .. _Sesame: http://www.openrdf.org
 .. _SPARQL: http://www.w3.org/TR/rdf-sparql-query/
     """
