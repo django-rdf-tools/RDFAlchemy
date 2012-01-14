@@ -9,7 +9,7 @@ from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError, \
 try:
     import json
 except ImportError:
-    import simplejson
+    import simplejson as json
 import logging
 
 __all__=["_JSONSPARQLHandler","_XMLSPARQLHandler","_BRTRSPARQLHandler"]
@@ -58,7 +58,13 @@ class _JSONSPARQLHandler(_SPARQLHandler):
     mimetype = 'application/sparql-results+json'
 
     def parse(self):
-        ret=json.load(self.stream)
+        import sys
+        if sys.version_info[0] > 2:
+            from io import TextIOWrapper
+            ret = json.load(TextIOWrapper(self.stream), 
+                            encoding=self.stream.info().get_content_charset('utf8'))
+        else:
+            ret=json.load(self.stream)
         var_names = ret['head']['vars'] 
         bindings = ret['results']['bindings']
         for b in bindings:

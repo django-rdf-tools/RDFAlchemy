@@ -15,7 +15,7 @@ import re
 try:
     import json
 except ImportError:
-    import simplejson
+    import simplejson as json
 import logging
 
 __all__=["SesameGraph"]
@@ -42,8 +42,13 @@ class SesameGraph(SPARQLGraph):
             pass
         req = Request(self.url+'/namespaces')
         req.add_header('Accept','application/sparql-results+json')
-        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))        
-        ret=json.load(urlopen(req))
+        log.debug("opening url: %s\n  with headers: %s" % (req.get_full_url(), req.header_items()))
+        import sys
+        if sys.version_info[0] == 3:
+            from io import TextIOWrapper
+            ret = json.load(TextIOWrapper(urlopen(req), encoding='utf8'))
+        else:
+            ret = json.load(urlopen(req))
         bindings=ret['results']['bindings']
         self._namespaces = dict([(b['prefix']['value'],b['namespace']['value']) for b in bindings])
         return self._namespaces
@@ -57,7 +62,12 @@ class SesameGraph(SPARQLGraph):
             pass
         req = Request(self.url+'/contexts')
         req.add_header('Accept','application/sparql-results+json')
-        ret=json.load(urlopen(req))
+        import sys
+        if sys.version_info[0] == 3:
+            from io import TextIOWrapper
+            ret = json.load(TextIOWrapper(urlopen(req), encoding='utf8'))
+        else:
+            ret = json.load(urlopen(req))
         bindings=ret['results']['bindings']
         self._contexts = [(b['contextID']['value']) for b in bindings]
         return self._contexts
