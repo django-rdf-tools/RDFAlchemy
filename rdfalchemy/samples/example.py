@@ -1,5 +1,7 @@
-from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple
-from rdflib import ConjunctiveGraph, Namespace, Literal
+from rdfalchemy import rdfSubject, rdfSingle
+from rdflib import ConjunctiveGraph, Namespace
+
+non_core = True
 
 import logging
 log = logging.getLogger()

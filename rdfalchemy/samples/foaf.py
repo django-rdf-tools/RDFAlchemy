@@ -6,8 +6,10 @@ foaf.py
 Created by Philip Cooper on 2007-11-23.
 Copyright (c) 2007 Openvest. All rights reserved.
 """
-from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple
+from rdfalchemy import rdfSubject, rdfSingle
 from rdflib import Namespace
+
+non_core = True
 
 FOAF=Namespace("http://xmlns.com/foaf/0.1/" )
 
