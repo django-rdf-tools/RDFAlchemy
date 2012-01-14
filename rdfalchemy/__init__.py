@@ -18,4 +18,4 @@ class NullHandler(logging.Handler):
 log = logging.getLogger(__name__)
 log.addHandler(NullHandler())
 
-__version__="0.2b3"
+__version__="0.3"
