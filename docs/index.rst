@@ -9,6 +9,7 @@ Contents:
    :maxdepth: 2
 
    rdfalchemy
+   customizing_literals
 
 Commands
 ========

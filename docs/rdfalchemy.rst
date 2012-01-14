@@ -52,10 +52,9 @@ API Docs
 ---------
 There are epydoc API Docs at http://www.openvest.com/public/docs/rdfalchemy/api/. You can also use links there to browse source, but it might not be current with the trunk.
 
-.. image::
-    _static/rdfa_overview_l1.png
-    :caption: RDFALchemy overview
-
+.. image:: _static/rdfa_overview_l1.png
+    :alt: RDFALchemy overview
+    :align: center
 
 The use of persistent objects in RDFAlchemy will be as close as possible to what it would be in SQLAlchemy.  Code like:
 
@@ -231,7 +230,7 @@ The basic syntax for the :class:`~rdfalchemy.descriptors.rdfSingle` descriptors 
 .. code-block:: python
 
     ibm Company.query.get_by(symbol = 'IBM')
-    sun Company.query.get_by(symbol == 'JAVA')
+    sun Company.query.get_by(symbol = 'JAVA')
 
     ## add another descriptor on the fly
     Company.industry = rdfSingle(ov.yindustry,'industry')
