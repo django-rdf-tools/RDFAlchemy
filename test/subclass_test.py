@@ -7,6 +7,12 @@ Created by Philip Cooper on 2008-05-14.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
+import sys
+if sys.version_info[0] > 2:
+    from nose import SkipTest
+    raise SkipTest('Skipping, _nodetype assumptions violated in Python 3')
+
+
 from rdfalchemy import rdfSubject, Namespace
 from rdfalchemy.rdfsSubject import rdfsSubject
 
@@ -84,4 +90,3 @@ def ssubclass_testLen2():
     "Test these things that are rdfsSubject ... with inferencing"
     assert len(list(Cs.ClassInstances())) == 4, len(list(Cs.ClassInstances()))
     assert len(list(Ds.ClassInstances())) == 3, len(list(Ds.ClassInstances()))    
-

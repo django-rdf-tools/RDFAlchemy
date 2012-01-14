@@ -15,7 +15,10 @@ if not log.handlers:
 
 XSD = Namespace(u'http://www.w3.org/2001/XMLSchema#')
 
-
+def just_for_coverage_test():
+    from rdfalchemy.Literal import _strToDateTime
+    x = _strToDateTime('2008-02-09T10:46:29')
+    assert type(x) == datetime
 
 def toPython_decimal_test():
     """docstring for toPython"""

@@ -1,5 +1,8 @@
-from rdfalchemy import rdfSubject, rdfSingle, rdfMultiple
-from rdflib import ConjunctiveGraph, Namespace, Literal, BNode, URIRef
+from rdfalchemy import rdfSingle
+from rdfalchemy import rdfSubject
+from rdflib import BNode
+from rdflib import ConjunctiveGraph
+from rdflib import Namespace
 
 from StringIO import StringIO
 
@@ -62,14 +65,13 @@ def test_1():
 
 ## list Companies
 for c in Company.ClassInstances():
-    print "%s has an SEC symbol of %s" % (c.companyName, c.cik)
-print ''
+    print("%s has an SEC symbol of %s" % (c.companyName, c.cik))
+print('')
 
 
 def test_2():
     ## Add a descriptor on the fly
     Company.stockDescription = rdfSingle(OV.stockDescription,'stockDescription')
-
     assert  c.companyName == c[OV.companyName]
     
     
@@ -90,7 +92,6 @@ def test_3():
     assert not c.industry
     
 def test_creating():
-    c1=Company()
     c2=Company(OV.A)
     c3=Company('<http://owl.openvest.org/2005/10/Portfolio#A>')
     c4=Company('_:xyz123')
