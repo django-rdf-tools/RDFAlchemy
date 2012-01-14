@@ -145,7 +145,7 @@ class _BRTRSPARQLHandler(_SPARQLHandler):
 
     def parse(self):
         print(self.stream.read())
-        if self.stream.read(4) <> 'BRTR': raise ParseError("First 4 bytes in should be BRTR")
+        if self.stream.read(4) != 'BRTR': raise ParseError("First 4 bytes in should be BRTR")
         self.ver = self.readint() # ver of protocol
         self.ncols = self.readint()
         self.keys = tuple(self.readstr() for x in range(self.ncols))
