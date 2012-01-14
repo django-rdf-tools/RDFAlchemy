@@ -23,11 +23,12 @@ def allsub(cl, beenthere = set([])):
 
 def mapper(*classes):
     """Map the classes given to allow descriptors with ranges to the proper Class of that type
-    default if no args is to map all subclasses(recursivly) of rdfSubject
+    default if no args is to map all subclasses(recursivly) of :class:`rdfalchemy.rdfSubject.rdfSubject`
     
-    preforms the mapping
+    performs the mapping
     
-    returns a dict of {rdf_type: mapped_class} for further processing"""
+    returns a dict of {rdf_type: mapped_class} for further processing
+    """
     if not classes:
         classes = allsub(rdfSubject)
     class_dict = dict([(str(cl.rdf_type), cl) for cl in classes])

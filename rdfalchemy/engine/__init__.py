@@ -1,14 +1,14 @@
 import os
 import re
+import cgi
 import urllib
 
 def create_engine(url='', identifier="", create=False):
     """
-    :returns: returns an open rdflib ConjunctiveGraph
+    :returns: returns an opened rdflib ConjunctiveGraph
 
     :param url: a string of the url
-    :param identifier: URIRef of the default context for writing
-    e.g.:
+    :param identifier: URIRef of the default context for writing e.g.:
       
       - create_engine('mysql://myname@localhost/rdflibdb')
       - create_engine('sleepycat://~/working/rdf_db')
@@ -19,10 +19,12 @@ def create_engine(url='', identifier="", create=False):
     
     for zodb:
     
-       the key in the Zope database is hardcoded as 'rdflib'
-       urls ending in `.fs` indicate FileStorage
-       otherwise ClientStoreage is assumed which requires
-       a ZEO Server to be running"""
+    the key in the Zope database is hardcoded as 'rdflib'
+    urls ending in `.fs` indicate FileStorage
+    otherwise ClientStoreage is assumed which requires
+    a ZEO Server to be running
+
+    """
     if url=='' or url.startswith('IOMemory'):
         from rdflib import ConjunctiveGraph
         db = ConjunctiveGraph('IOMemory')
@@ -84,8 +86,8 @@ def create_engine(url='', identifier="", create=False):
 def engine_from_config(configuration, prefix='rdfalchemy.', **kwargs):
     """Create a new Engine instance using a configuration dictionary.
     
-    :param configuration: a dictionary, typically produced from a config file 
-    where keys are prefixed, such as `rdfalchemy.dburi`, etc.  
+    :param configuration: a dictionary, typically produced from a config file
+        where keys are prefixed, such as `rdfalchemy.dburi`, etc.
     :param prefix: indicates the prefix to be searched for.
     
     """
@@ -132,5 +134,5 @@ def _parse_rfc1738_args(name):
             opts['password'] = urllib.unquote_plus(opts['password'])
         return (name, opts)
     else:
-        raise exceptions.ValueError("Could not parse rfc1738 URL from string '%s'" % name)
+        raise ValueError("Could not parse rfc1738 URL from string '%s'" % name)
 

@@ -110,6 +110,8 @@ class rdfSubject(object):
         class.
         example:
         
+        .. code-block:: python
+
             bigBlue = Company.get_by(symbol='IBM')
 
         :Note:
