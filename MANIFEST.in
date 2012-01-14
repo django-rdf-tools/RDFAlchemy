@@ -1,0 +1,6 @@
+include README
+include LICENSE
+include ez_setup.py
+recursive-include rdfalchemy *.py *.rdf *.n3 *.rdfs
+graft test
+graft docs
