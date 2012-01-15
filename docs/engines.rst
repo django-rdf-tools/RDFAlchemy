@@ -1,4 +1,4 @@
-.. _engines: Engines in RDFAlchemy
+.. _engines: Engines
 
 ===========
 Engine room

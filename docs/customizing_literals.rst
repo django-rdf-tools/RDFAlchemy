@@ -1,7 +1,7 @@
-.. _literals_in_rdfalchemy: Literals in RDFAlchemy
+.. _literals_in_rdfalchemy: Literals
 
 ======================
-Literals in RDFAlchemy
+Customizing Literals
 ======================
 
 RDFAlchemy now imports ``Literal`` from its own file rather than rdflib.  This is to provide some customized handling of literals.  You can edit your :class:`~rdfalchemy.Literal` file or use the :class:`~rdfalchemy.Literal` source as a model for your own project.
