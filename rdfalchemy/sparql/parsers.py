@@ -5,7 +5,7 @@ from struct import unpack
 
 from rdfalchemy.exceptions import MalformedQueryError, QueryEvaluationError, \
     ParseError
-
+from rdfalchemy.py3compat import *
 try:
     import json
 except ImportError:
@@ -142,6 +142,8 @@ class _BRTRSPARQLHandler(_SPARQLHandler):
     .. _BRTR: http://www.openrdf.org/doc/sesame/api/org/openrdf/sesame/query/BinaryTableResultConstants.html
     """
 
+    mimetype = "application/x-binary-rdf-results-table"
+
     def readint(self):
         return  unpack('>i',self.stream.read(4))[0]
     
@@ -150,8 +152,7 @@ class _BRTRSPARQLHandler(_SPARQLHandler):
         return self.stream.read(l).decode("utf-8")
 
     def parse(self):
-        print(self.stream.read())
-        if self.stream.read(4) != 'BRTR': raise ParseError("First 4 bytes in should be BRTR")
+        if self.stream.read(4) != b('BRTR'): raise ParseError("First 4 bytes in should be BRTR")
         self.ver = self.readint() # ver of protocol
         self.ncols = self.readint()
         self.keys = tuple(self.readstr() for x in range(self.ncols))
