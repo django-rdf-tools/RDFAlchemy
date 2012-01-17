@@ -7,13 +7,13 @@ logging.getLogger('rdfalchemy.sparql').setLevel(logging.DEBUG)
 logging.getLogger('rdfalchemy.sesame2').setLevel(logging.DEBUG)
 logging.getLogger('root').addHandler(logging.StreamHandler())
 
-url1 = 'http://www.openvest.com:8080/sesame/repositories/Portfolio/'
-url2 = 'http://www.openvest.com:8080/sesame/repositories/Test/'
-url1 = 'http://localhost:8080/openrdf-sesame/repositories/murray'
-url2 = 'http://localhost:8080/openrdf-sesame/repositories/polti'
+url1 = 'http://example.com:8080/openrdf-sesame/repositories/murray'
+url2 = 'http://example.com:8080/openrdf-sesame/repositories/polti'
 
-url1 = 'http://bel-epa.com:8080/openrdf-sesame/repositories/journals'
-url1 = 'http://bel-epa.com:8080/openrdf-sesame/repositories/ukppsw01'
+if 'example.com' in url1 or 'example.com' in url2:
+    from nose import SkipTest
+    raise SkipTest('Please provide a functioning Sesame2 endpoint URL')
+
 
 q1 = "select ?s ?p ?o where {?s ?p ?o} limit 1000"
 q2 = "select ?o where {?s ?p ?o} limit 10000"
