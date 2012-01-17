@@ -12,6 +12,7 @@ Copyright (c) 2008 Openvest. All rights reserved.
 """
 
 from rdfalchemy import  rdfSubject, RDF, RDFS, Namespace, BNode, URIRef
+from rdfalchemy.py3compat import PY3
 try:
     from rdflib.term import Identifier
 except ImportError:
@@ -95,11 +96,13 @@ class rdfsSubject(rdfSubject, Identifier):
             self.db.add((self.resUri,RDF.type,self.rdf_type))
         if kwargs:
             self._set_with_dict(kwargs)
-            
-            
+
     @property
     def resUri(self):
-        return self._nodetype(unicode(self))
+        if PY3:
+            return self._nodetype(self)
+        else:
+            return self._nodetype(str(self))
     
     def _splitname(self):
         return re.match(r'(.*[/#])(.*)',self.resUri).groups()

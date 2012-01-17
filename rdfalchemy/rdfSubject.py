@@ -6,7 +6,7 @@ Requires rdflib <http://www.rdflib.net/> version 2.3 ??.
 
 """
 
-from rdflib import ConjunctiveGraph
+from rdflib import ConjunctiveGraph, __version__ as rdflibversion
 from rdflib import BNode, Namespace, URIRef, RDF
 try:
     from rdflib.term import Identifier
@@ -194,8 +194,9 @@ class rdfSubject(object):
     def __repr__(self):
         return """%s('%s')""" % (self.__class__.__name__, self.n3())
     
-    def __str__(self):
-        return str(self.resUri)
+    if rdflibversion.startswith('2'):
+        def __str__(self):
+            return str(self.resUri)
     
     def __getitem__(self, pred):
         log.debug("Getting with __getitem__ %s for %s"%(pred,self.n3()))

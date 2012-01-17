@@ -1,8 +1,3 @@
-import sys
-if sys.version_info[0] > 2:
-    from nose import SkipTest
-    raise SkipTest('Skipping, _nodetype assumptions violated in Python 3')
-
 from rdfalchemy import Namespace,rdfSingle,rdfMultiple
 from rdfalchemy.rdfsSubject import rdfsSubject
 

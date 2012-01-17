@@ -5,7 +5,7 @@ Literal.py
 Created by Philip Cooper on 2008-02-09.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
-from rdflib import Namespace, Literal
+from rdflib import Namespace, Literal, __version__ as rdflibversion
 try:
     from rdflib.term import bind as bindLiteral
     from rdflib.term import _PythonToXSD
@@ -32,7 +32,7 @@ if not _log.handlers:
     h = logging.StreamHandler()
     h.addFilter(rebindingLogFilter())
     _log.addHandler(h)
-    
+
 ################################################################################
 ## Let's make toPython return a Decimal if an XSD.decimal in in the triplestore
 try:
@@ -54,7 +54,7 @@ bindLiteral(None,unicode)
 ## Default behavior returns string literals as literals
 ## this brings  string literals back as unicode strings
 bindLiteral(XSD.string,unicode)
-        
+
 ################################################################################
 ## Let's make toPython return a datetime if the literal has fractional seconds
 ## Note: dateparser adapted from http://www.mnot.net/python/isodate.py

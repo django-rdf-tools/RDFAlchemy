@@ -7,12 +7,6 @@ Created by Philip Cooper on 2008-05-14.
 Copyright (c) 2008 Openvest. All rights reserved.
 """
 
-import sys
-if sys.version_info[0] > 2:
-    from nose import SkipTest
-    raise SkipTest('Skipping, _nodetype assumptions violated in Python 3')
-
-
 from rdfalchemy import rdfSubject, Namespace
 from rdfalchemy.rdfsSubject import rdfsSubject
 
