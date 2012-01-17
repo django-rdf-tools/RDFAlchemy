@@ -141,7 +141,3 @@ put all of his data in one repository.
 
 You can mix and match SQL, RDF and SPARQL data with little effort.
 
-FormAlchemy
-===========
-
-See :mod:`Formalchemy support for RDFAlchemy <formalchemy:formalchemy.ext.rdf>`
