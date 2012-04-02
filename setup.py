@@ -115,7 +115,7 @@ through dot notation. ::
 
 Includes advanced descriptors for read/write access to lists and collections.
       
-.. _rdflib: http://code.google.com/p/rdflib
+.. _rdflib: https://github.com/RDFLib/rdflib
 .. _Sesame: http://www.openrdf.org
 .. _SPARQL: http://www.w3.org/TR/rdf-sparql-query/
     """
