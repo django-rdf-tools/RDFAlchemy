@@ -8,7 +8,7 @@ except ImportError:
     from rdflib.syntax.parsers.ntriples import NTriplesParser
 
 from urllib2 import urlopen, Request, HTTPError
-from urllib import urlencode
+from urllib import urlencode, quote_plus
 
 import os
 import re
@@ -82,7 +82,9 @@ class SesameGraph(SPARQLGraph):
         if p:
             query['pred'] = p.n3()
         if o:
-            query['obj']  = o.n3()
+            query['obj']  = o.n3().encode("utf-8")
+            # o.n3()
+            #quote_plus(o.n3().encode("utf-8"))
         if context:
 	    ### TODO FIXME what about bnodes like _:adf23123
             query['context']  = "<%s>"%context
@@ -203,6 +205,7 @@ class SesameGraph(SPARQLGraph):
         url = self.url+'/statements'
         if not (source.startswith('http://') or source.startswith('file://')):
             source = 'file://'+os.path.abspath(os.path.expanduser(source))
+ 
         ctx = "<%s>" % (publicID or source)
         url = url+"?"+urlencode(dict(context=ctx))
 
