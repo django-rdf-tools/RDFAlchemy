@@ -55,9 +55,8 @@ class rdfSubject(object):
            * an instance of a BNode or a URIRef
            * an n3 uriref string like: "<urn:isbn:1234567890>"
            * an n3 bnode string like: "_:xyz1234" 
-        
         :param kwargs: is a set of values that will be set using the keys to find the appropriate descriptor"""
-        
+
         if not resUri:  # create a bnode
             self.resUri = BNode()
             if self.rdf_type:
@@ -204,7 +203,9 @@ class rdfSubject(object):
         if isinstance(val,Literal):
             val =  val.toPython() 
         elif isinstance(val, (BNode,URIRef)): 
-            val=rdfSubject(val) 
+            # rdfSubject create val with the default db.....
+            val=rdfSubject(val)
+            val.db = self.db
         return val
         
         
@@ -231,7 +232,7 @@ class rdfSubject(object):
             descriptor.__set__(self, value)
         
         
-    def _remove(self, db=None, cascade = 'bnode', bnodeCheck=True):
+    def _remove(self, db=None, cascade = 'bnode', bnodeCheck=True, objectCascade=False):
         """remove all triples where this rdfSubject is the subject of the triple
         
         :param db: limit the remove operation to this graph
@@ -248,6 +249,10 @@ class rdfSubject(object):
                     * False --  do not check.  This can leave orphaned object reference 
                       in triples.  Use only if you are resetting the value in
                       the same transaction
+        :param objectCascade: boolean
+                    * False -- (default) do nothing
+                    * True -- delete also all triples where this refSubject is the
+                    object of the triple.
         """
         noderef = self.resUri            
         log.debug("Called remove on %s" % self)
@@ -284,7 +289,10 @@ class rdfSubject(object):
         for s,p,o in db.triples((noderef, None, None)):
             db.remove((s,p,o))
             if test(o):
-                rdfSubject(o)._remove(db=db,cascade=cascade)
+               rdfSubject(o)._remove(db=db,cascade=cascade)
+        if objectCascade:
+            for s, p, o in db.triples((None, None, noderef)):
+                db.remove((s, p, o))
 
                 
     def _rename(self, name, db=None):
