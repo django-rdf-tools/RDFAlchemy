@@ -203,9 +203,7 @@ class rdfSubject(object):
         if isinstance(val,Literal):
             val =  val.toPython() 
         elif isinstance(val, (BNode,URIRef)): 
-            # rdfSubject create val with the default db.....
             val=rdfSubject(val)
-            val.db = self.db
         return val
         
         
