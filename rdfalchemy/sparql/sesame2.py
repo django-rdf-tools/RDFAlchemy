@@ -1,6 +1,7 @@
 from rdfalchemy import Literal, BNode, Namespace, URIRef
 from rdfalchemy.sparql import SPARQLGraph, DumpSink
 from rdfalchemy.sparql.parsers import _BRTRSPARQLHandler,_XMLSPARQLHandler,_JSONSPARQLHandler
+from rdflib.plugins.serializers.nt import _xmlcharref_encode
 
 try:
     from rdflib.plugins.parsers.ntriples import NTriplesParser
@@ -82,7 +83,7 @@ class SesameGraph(SPARQLGraph):
         if p:
             query['pred'] = p.n3()
         if o:
-            query['obj']  = o.n3().encode("utf-8")
+            query['obj'] = _xmlcharref_encode(o.n3())
             # o.n3()
             #quote_plus(o.n3().encode("utf-8"))
         if context:
@@ -99,7 +100,7 @@ class SesameGraph(SPARQLGraph):
         if ctx:
             url = url+"?"+urlencode(dict(context=ctx))
         req = Request(url)
-        req.data = "%s %s %s .\n" % (s.n3(), p.n3(), o.n3())
+        req.data = "%s %s %s .\n" % (s.n3(), p.n3(), o.n3().encode("utf-8"))
         req.add_header('Content-Type','text/rdf+n3')
         try:
             result = urlopen(req).read()
