@@ -100,7 +100,7 @@ class SesameGraph(SPARQLGraph):
         if ctx:
             url = url+"?"+urlencode(dict(context=ctx))
         req = Request(url)
-        req.data = "%s %s %s .\n" % (s.n3(), p.n3(), o.n3().encode("utf-8"))
+        req.data = "%s %s %s .\n" % (s.n3(), p.n3(), _xmlcharref_encode(o.n3()))
         req.add_header('Content-Type','text/rdf+n3')
         try:
             result = urlopen(req).read()
