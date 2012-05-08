@@ -188,7 +188,10 @@ class rdfSubject(object):
         return hash("ranD0Mi$h_"+self.n3())
     
     def __cmp__(self, other):
-        return cmp(self.n3(), other.n3())
+        if other == None:
+            return False
+        else:
+            return cmp(self.n3(), other.n3())
     
     def __repr__(self):
         return """%s('%s')""" % (self.__class__.__name__, self.n3())
