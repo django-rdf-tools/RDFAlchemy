@@ -172,9 +172,9 @@ class rdfMultiple(rdfAbstract):
         log.debug("Geting with descriptor %s for %s"%(self.pred,obj.n3()))
         # check to see if this is a Container or Collection
         # if so, return collection as a list
-        if len(val) == 1 \
-           and (obj.db.value(o,RDF.first) or obj.db.value(o,RDF._1)): 
-                  val=getList(obj, self.pred)
+        if len(val) == 1 and not isinstance(val[0], Literal)  \
+           and (obj.db.value(val[0], RDF.first) or obj.db.value(val[0], RDF._1)):
+            val = getList(obj, self.pred)
         val=[(isinstance(v, (BNode,URIRef)) and self.range_class(v) or v.toPython()) for v in val]
         obj.__dict__[self.name]= val
         return val
@@ -197,7 +197,7 @@ class rdfMultiple(rdfAbstract):
                 obj.db.add((obj.resUri, self.pred, value2object(value)))
                 log.debug("adding: %s, %s, %s"%(obj.n3(),self.pred,value))
         obj.__dict__[self.name] = copy(newvals)
-        
+
 class rdfBest(rdfSingle):
     '''This is a Descriptor  that returns one value that is the 
     "best" result out of possible multiple matches
