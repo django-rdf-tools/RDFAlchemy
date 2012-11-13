@@ -8,7 +8,7 @@ try:
 except ImportError:
     from rdflib.syntax.parsers.ntriples import NTriplesParser
 
-from urllib2 import urlopen, Request, HTTPError
+from urllib2 import urlopen, Request, HTTPError, quote
 from urllib import urlencode, quote_plus
 
 import os
@@ -77,9 +77,9 @@ class SesameGraph(SPARQLGraph):
     def _statement_encode(self, (s, p, o), context):
         """helper function to encode triples to sesame statement uri's"""
         query = {}
-        url = self.url+'/statements'
+        url = self.url + '/statements'
         if s:
-            query['subj'] = s.n3()
+            query['subj'] = s.n3().encode('utf8')
         if p:
             query['pred'] = p.n3()
         if o:
@@ -100,7 +100,8 @@ class SesameGraph(SPARQLGraph):
         if ctx:
             url = url+"?"+urlencode(dict(context=ctx))
         req = Request(url)
-        req.data = "%s %s %s .\n" % (s.n3(), p.n3(), _xmlcharref_encode(o.n3()))
+        # req.data = "%s %s %s .\n" % (s.n3(), p.n3(), _xmlcharref_encode(o.n3()))
+        req.data = "<%s> %s %s .\n" % (_xmlcharref_encode(unicode(s)), p.n3(), _xmlcharref_encode(o.n3()))
         req.add_header('Content-Type','text/rdf+n3')
         try:
             result = urlopen(req).read()
@@ -135,6 +136,7 @@ class SesameGraph(SPARQLGraph):
         Returns triples that match the given triple pattern. If triple pattern
         does not provide a context, all contexts will be searched.
         """
+
         url = self._statement_encode((s, p, o), context)
         req = Request(url)
         req.add_header('Accept','text/plain') # N-Triples is best for generator (one line per triple)

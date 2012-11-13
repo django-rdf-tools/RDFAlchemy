@@ -194,7 +194,7 @@ class rdfSubject(object):
             return cmp(self.n3(), other.n3())
     
     def __repr__(self):
-        return """%s('%s')""" % (self.__class__.__name__, self.n3())
+        return """%s('%s')""" % (self.__class__.__name__, self.n3().encode('utf-8'))
     
     if rdflibversion.startswith('2'):
         def __str__(self):
